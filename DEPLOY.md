@@ -75,9 +75,10 @@ While you are there, set your Instagram and TikTok handles too.
 
 ## Two things to know about the free plan
 
-**The shop sleeps.** After about 15 minutes with no visitors, Render puts it to
-sleep. The next person to open your link waits 30–60 seconds for it to wake up.
-Fine for sharing with friends, annoying for real customers.
+**The shop sleeps.** After 15 minutes with no visitors, Render puts it to sleep.
+The next person to open your link sees a loading page for about a minute while it
+wakes up. Fine for sharing with friends, annoying for real customers. (You also
+get 750 free hours a month, which is roughly one service running full time.)
 
 **Your products reset.** This is the important one. On the free plan Render gives
 the shop no permanent storage, so every product you add, every photo you upload
@@ -86,13 +87,18 @@ each time it sleeps, and on every deploy. The shop comes back with the 32 sample
 products.
 
 So the free plan is right for *showing people the shop*. It is not somewhere to
-run the real business.
+run the real business — Render's own documentation says not to use free instances
+for production.
 
 ### When you're ready to sell for real
 
-In Render: open your service → **Settings** → change the instance type to
-**Starter** (about $7/month). Then open `render.yaml` in this folder, delete the
-`#` from the last four lines so it reads:
+In Render: open your service → **Settings** → change the instance type from Free
+to a paid one (**Starter** is the cheapest; check render.com/pricing for the
+current rate). Persistent disks are only available on paid services, which is
+what makes your data stick.
+
+Then open `render.yaml` in this folder and delete the `#` from the last four
+lines so it reads:
 
 ```yaml
     disk:
