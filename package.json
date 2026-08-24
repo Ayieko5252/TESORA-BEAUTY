@@ -9,7 +9,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "seed": "node seed.js",
-    "start:render": "node seed.js --if-empty && node server.js"
+    "start:prod": "node seed.js --if-empty && node server.js"
   },
   "engines": {
     "node": ">=20"

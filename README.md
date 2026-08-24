@@ -118,10 +118,13 @@ public/
 
 ### Putting it online
 
-It runs as-is on any host that runs Node 20+ (Railway, Render, a VPS). Two things to do
-first: make sure `data/` is on persistent storage so your products and photos survive a
-restart, and put it behind HTTPS — the admin password is sent over the connection at login.
+See **[DEPLOY.md](DEPLOY.md)** for step-by-step instructions to get a shareable link.
+It deploys to Northflank, where the shop stays awake and keeps your data.
 
-**Before going public, set a longer password.** `1234` is fine while the shop only runs on
-your own computer, but on the open internet a four-digit password is guessable. Anyone who
-gets in can change your prices, stock and orders. Admin → Settings, something long.
+Two things that matter wherever you host it:
+
+- **Set a longer password first.** `1234` is fine while the shop only runs on your own
+  computer, but on the open internet a four-digit password is guessable, and anyone who
+  gets in can change your prices, stock and orders.
+- **Keep `data/` on persistent storage.** That folder *is* your shop. On a host with no
+  disk, every product and photo you add is wiped on the next restart.

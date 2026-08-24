@@ -1,0 +1,10 @@
+# Never bake your local shop data into the image — the live shop keeps its own
+# products, orders and photos on its mounted volume.
+data/
+
+.git/
+.gitignore
+node_modules/
+*.md
+.claude/
+render.yaml
