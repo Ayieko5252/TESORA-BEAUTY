@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e8cd7a"/><stop offset="50%" stop-color="#c9a227"/><stop offset="100%" stop-color="#f4e3ad"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fdeef1"/><stop offset="100%" stop-color="#fbf7f2"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="600" fill="url(#bg)"/>
+  <circle cx="300" cy="316" r="196" fill="#fff" opacity=".62"/>
+  <rect x="140" y="230" width="320" height="200" rx="22" fill="#2a2523"/>
+            <rect x="160" y="250" width="280" height="140" rx="14" fill="#fdeef1"/>
+            <circle cx="205" cy="300" r="24" fill="#e39fae"/><circle cx="267" cy="300" r="24" fill="#b8536c"/><circle cx="329" cy="300" r="24" fill="#c9a227"/><circle cx="391" cy="300" r="24" fill="#8d6e63"/>
+            <circle cx="205" cy="356" r="24" fill="#f7c9d3"/><circle cx="267" cy="356" r="24" fill="#d98f7a"/><circle cx="329" cy="356" r="24" fill="#e8cd7a"/><circle cx="391" cy="356" r="24" fill="#6d4c41"/>
+  <path d="M282 62 L290 44 L300 58 L310 44 L318 62 Z" fill="url(#g)"/>
+  <text x="300" y="552" text-anchor="middle" font-family="Georgia, serif" font-size="30"
+        letter-spacing="9" fill="#2a2523">TESSORA</text>
+  <text x="300" y="578" text-anchor="middle" font-family="Georgia, serif" font-size="15"
+        letter-spacing="5" fill="#b8536c">MAKEUP</text>
+</svg>

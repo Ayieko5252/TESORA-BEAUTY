@@ -1,0 +1,10 @@
+# Your live shop data — products, orders, settings and uploaded photos.
+# Kept out of Git so your real shop is never overwritten by a deploy,
+# and so customer names and phone numbers never end up on GitHub.
+data/
+
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+*.tmp

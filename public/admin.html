@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin · Tessora Beauty</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+<!-- ------------------------------------------------------------ login -->
+<div class="login" id="login">
+  <form class="login__card" id="loginForm">
+    <img src="/assets/logo.svg" alt="Tessora Beauty">
+    <h1>Store Admin</h1>
+    <p class="sub">Tessora Beauty — manage products, stock &amp; orders</p>
+    <div id="loginMsg"></div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required placeholder="••••••••">
+    </div>
+    <button class="btn btn--gold btn--block" type="submit" id="loginBtn">Sign in</button>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:1.2rem">
+      <a href="/">← Back to the shop</a>
+    </p>
+  </form>
+</div>
+
+<!-- -------------------------------------------------------------- app -->
+<div class="app" id="app">
+  <aside class="side" id="side">
+    <div class="side__brand">
+      <img src="/assets/logo.svg" alt="">
+      <span><b>Tessora</b><span>Admin panel</span></span>
+    </div>
+
+    <button class="side__link is-active" data-tab="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      Dashboard
+    </button>
+    <button class="side__link" data-tab="products">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Products
+    </button>
+    <button class="side__link" data-tab="inventory">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7h18v13H3z"/><path d="M3 7 6 3h12l3 4"/><path d="M9 12h6"/></svg>
+      Inventory
+      <span class="side__badge" id="badgeStock" hidden>0</span>
+    </button>
+    <button class="side__link" data-tab="orders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 4h9l3 5v11a1 1 0 0 1-1 1H8Z"/><path d="M4 4v17"/><path d="M11 12h6"/><path d="M11 16h6"/></svg>
+      Orders
+      <span class="side__badge" id="badgeOrders" hidden>0</span>
+    </button>
+    <button class="side__link" data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9 4.6V4a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.6 1.6 0 0 0 19.4 9H21a2 2 0 1 1 0 4h-.1Z"/></svg>
+      Settings
+    </button>
+
+    <div class="side__foot">
+      <a href="/" target="_blank">View storefront ↗</a>
+      <button id="logout">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="mobile-bar">
+      <button class="btn btn--light btn--icon" id="menuToggle" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="17"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <b>Tessora Admin</b>
+    </div>
+
+    <div id="globalNotice"></div>
+
+    <!-- ---------------------------------------------------- dashboard -->
+    <section class="panel is-active" id="panel-dashboard">
+      <div class="topbar">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Everything happening in your store right now.</p>
+        </div>
+        <div class="topbar__actions">
+          <button class="btn btn--gold" data-new-product>+ Add product</button>
+        </div>
+      </div>
+
+      <div class="stats" id="statCards"></div>
+
+      <div class="cols">
+        <div class="card">
+          <div class="card__head">
+            <h2>Recent orders</h2>
+            <div class="right"><button class="btn btn--light btn--sm" data-tab="orders">View all</button></div>
+          </div>
+          <div class="card__body"><div class="list" id="recentOrders"></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <h2>Stock alerts</h2>
+            <div class="right"><button class="btn btn--light btn--sm" data-tab="inventory">Manage stock</button></div>
+          </div>
+          <div class="card__body"><div class="list" id="stockAlerts"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------- products -->
+    <section class="panel" id="panel-products">
+      <div class="topbar">
+        <div>
+          <h1>Products</h1>
+          <p>Click any product below to edit it — photos, price, discount and stock.</p>
+        </div>
+        <div class="topbar__actions">
+          <button class="btn btn--gold" data-new-product>+ Add product</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <div class="filters">
+            <input class="input" id="prodSearch" type="search" placeholder="Search by name, brand or SKU…">
+            <select class="input" id="prodCategory"><option value="all">All categories</option></select>
+            <select class="input" id="prodStatus">
+              <option value="all">All products</option>
+              <option value="active">Published only</option>
+              <option value="hidden">Hidden only</option>
+              <option value="sale">On discount</option>
+              <option value="low">Low stock</option>
+              <option value="out">Out of stock</option>
+            </select>
+          </div>
+          <div class="right"><span id="prodCount" style="font-size:.82rem;color:var(--muted)"></span></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th><th>Category</th><th class="t-right">Price</th>
+                <th class="t-center">Discount</th><th class="t-right">Sells at</th>
+                <th class="t-center">Stock</th><th class="t-center">Status</th><th class="t-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="prodRows"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="prodEmpty" hidden>
+          <div class="empty__mark">T</div>
+          <h3>No products yet</h3>
+          <p>Click “Add product” to upload your first item.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- inventory -->
+    <section class="panel" id="panel-inventory">
+      <div class="topbar">
+        <div>
+          <h1>Inventory</h1>
+          <p>Adjust stock counts as items come in and go out.</p>
+        </div>
+        <div class="topbar__actions">
+          <select class="input" id="invFilter" style="width:auto">
+            <option value="all">All items</option>
+            <option value="low">Low stock</option>
+            <option value="out">Out of stock</option>
+            <option value="in">In stock</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="stats" id="invStats"></div>
+
+      <div class="card">
+        <div class="card__head"><h2>Stock levels</h2>
+          <div class="right"><span style="font-size:.82rem;color:var(--muted)">Changes save instantly</span></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th><th>SKU</th><th class="t-center">Status</th>
+                <th class="t-center">In stock</th><th class="t-right">Stock value</th><th class="t-right">Restock</th>
+              </tr>
+            </thead>
+            <tbody id="invRows"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="invEmpty" hidden><p>Nothing matches this filter.</p></div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------- orders -->
+    <section class="panel" id="panel-orders">
+      <div class="topbar">
+        <div>
+          <h1>Orders</h1>
+          <p>Customer orders. Stock is reserved automatically when an order is placed.</p>
+        </div>
+        <div class="topbar__actions">
+          <select class="input" id="orderFilter" style="width:auto">
+            <option value="all">All orders</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head"><h2>Order list</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Order</th><th>Customer</th><th>Items</th><th class="t-right">Total</th><th class="t-center">Status</th><th class="t-right">Actions</th></tr>
+            </thead>
+            <tbody id="orderRows"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="orderEmpty" hidden>
+          <div class="empty__mark">♡</div>
+          <h3>No orders yet</h3>
+          <p>Orders placed on the storefront will appear here.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------- settings -->
+    <section class="panel" id="panel-settings">
+      <div class="topbar">
+        <div><h1>Settings</h1><p>Store details, delivery and your admin password.</p></div>
+      </div>
+
+      <div class="cols">
+        <div class="card">
+          <div class="card__head"><h2>Store details</h2></div>
+          <div class="card__body">
+            <form id="settingsForm">
+              <div class="grid-2">
+                <div class="field"><label for="setStoreName">Store name</label><input id="setStoreName"></div>
+                <div class="field"><label for="setTagline">Tagline</label><input id="setTagline"></div>
+              </div>
+              <div class="field"><label for="setAnnounce">Announcement bar</label><input id="setAnnounce" placeholder="Free delivery within Nairobi on orders over KSh 5,000"></div>
+              <div class="grid-2">
+                <div class="field"><label for="setWhatsapp">WhatsApp number</label><input id="setWhatsapp" placeholder="254712345678"><small>Country code, no + or spaces</small></div>
+                <div class="field"><label for="setEmail">Email</label><input id="setEmail" type="email"></div>
+              </div>
+              <div class="grid-2">
+                <div class="field"><label for="setInstagram">Instagram handle</label><input id="setInstagram" placeholder="tessorabeauty"></div>
+                <div class="field"><label for="setTiktok">TikTok handle</label><input id="setTiktok" placeholder="tessorabeauty"></div>
+              </div>
+              <div class="grid-2">
+                <div class="field"><label for="setLocation">Location</label><input id="setLocation" placeholder="Nairobi, Kenya"></div>
+                <div class="field"><label for="setCurrency">Currency symbol</label><input id="setCurrency" placeholder="KSh"></div>
+              </div>
+              <div class="grid-3">
+                <div class="field"><label for="setDelivery">Delivery fee</label><input id="setDelivery" type="number" min="0"></div>
+                <div class="field"><label for="setFreeOver">Free delivery over</label><input id="setFreeOver" type="number" min="0"><small>0 = never free</small></div>
+                <div class="field"><label for="setThreshold">Low stock alert at</label><input id="setThreshold" type="number" min="1" max="100"></div>
+              </div>
+              <button class="btn btn--gold" type="submit">Save settings</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><h2>Admin password</h2></div>
+          <div class="card__body">
+            <div id="passwordMsg"></div>
+            <form id="passwordForm">
+              <div class="field"><label for="pwCurrent">Current password</label><input id="pwCurrent" type="password" autocomplete="current-password" required></div>
+              <div class="field"><label for="pwNew">New password</label><input id="pwNew" type="password" autocomplete="new-password" required minlength="4"><small>At least 4 characters</small></div>
+              <div class="field"><label for="pwConfirm">Confirm new password</label><input id="pwConfirm" type="password" autocomplete="new-password" required minlength="4"></div>
+              <button class="btn btn--dark" type="submit">Change password</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ------------------------------------------------------ product modal -->
+<div class="modal" id="productModal">
+  <div class="modal__panel">
+    <div class="modal__head">
+      <h2 id="pmTitle">Add product</h2>
+      <button class="btn btn--light btn--icon" data-close-modal aria-label="Close">&times;</button>
+    </div>
+    <div class="modal__body">
+      <div id="pmMsg"></div>
+      <form id="productForm">
+        <input type="hidden" id="pmId">
+
+        <div class="field">
+          <label>Product photos</label>
+          <div class="drop" id="pmDrop">
+            <b>Click to upload or drag photos here</b>
+            <span>PNG, JPG or WEBP · up to 6MB each · first photo is the cover</span>
+          </div>
+          <input type="file" id="pmFiles" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+          <div class="previews" id="pmPreviews"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field"><label for="pmName">Product name *</label><input id="pmName" required placeholder="Kiss Beauty Matte Lip Gloss"></div>
+          <div class="field"><label for="pmBrand">Brand</label><input id="pmBrand" placeholder="Kiss Beauty"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field"><label for="pmCategory">Category *</label><select id="pmCategory" required></select></div>
+          <div class="field"><label for="pmSku">SKU / product code</label><input id="pmSku" placeholder="Auto-generated if left blank"></div>
+        </div>
+
+        <div class="grid-3">
+          <div class="field"><label for="pmPrice">Price *</label><input id="pmPrice" type="number" min="1" step="1" required placeholder="850"></div>
+          <div class="field"><label for="pmDiscount">Discount %</label><input id="pmDiscount" type="number" min="0" max="95" step="1" value="0"></div>
+          <div class="field"><label for="pmStock">Stock quantity *</label><input id="pmStock" type="number" min="0" step="1" required value="0"></div>
+        </div>
+
+        <div class="notice notice--ok" id="pmPricePreview" style="display:none"></div>
+
+        <div class="field"><label for="pmDescription">Description</label><textarea id="pmDescription" placeholder="Soft, glossy and irresistible lips ♡"></textarea></div>
+
+        <label class="switch"><input type="checkbox" id="pmActive" checked> Published on the storefront</label>
+        <label class="switch"><input type="checkbox" id="pmFeatured"> Mark as bestseller</label>
+      </form>
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn--light" data-close-modal>Cancel</button>
+      <button class="btn btn--gold" id="pmSave" type="button">Save product</button>
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------- order modal -->
+<div class="modal" id="orderModal">
+  <div class="modal__panel">
+    <div class="modal__head">
+      <h2 id="omTitle">Order</h2>
+      <button class="btn btn--light btn--icon" data-close-modal aria-label="Close">&times;</button>
+    </div>
+    <div class="modal__body" id="omBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>
