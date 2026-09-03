@@ -650,3 +650,15 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
   .live-dot { animation: livePulse 2s ease-in-out infinite; }
   @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 }
+
+/* the signed-in shopper's name, next to the account icon */
+.icon-btn--acct { width: auto; padding: 0 .7rem; gap: .4rem; }
+.acct-who {
+  font-size: .82rem; letter-spacing: .02em; color: var(--ink);
+  max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* on a narrow screen the icon alone has to carry it */
+@media (max-width: 720px) {
+  .acct-who { display: none; }
+  .icon-btn--acct { width: 42px; padding: 0; }
+}

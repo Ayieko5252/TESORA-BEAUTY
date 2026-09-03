@@ -193,7 +193,8 @@
             <thead>
               <tr>
                 <th>Product</th><th>SKU</th><th class="t-center">Status</th>
-                <th class="t-center">In stock</th><th class="t-right">Stock value</th><th class="t-right">Restock</th>
+                <th class="t-center">In stock</th><th class="t-center">Buying price</th>
+                <th class="t-right">Stock value</th><th class="t-right">Restock</th>
               </tr>
             </thead>
             <tbody id="invRows"></tbody>
@@ -547,7 +548,7 @@
           <div class="field"><label for="pmPrice">Price *</label><input id="pmPrice" type="number" min="1" step="1" required placeholder="850"></div>
           <div class="field"><label for="pmDiscount">Discount %</label><input id="pmDiscount" type="number" min="0" max="95" step="1" value="0"></div>
           <div class="field"><label for="pmStock">Stock quantity *</label><input id="pmStock" type="number" min="0" step="1" required value="0"></div>
-          <div class="field"><label for="pmCostPrice">Cost price</label><input id="pmCostPrice" type="number" min="0" step="1" placeholder="What you paid"><small>Used for profit and the balance sheet</small></div>
+          <div class="field"><label for="pmCostPrice">Buying price</label><input id="pmCostPrice" type="number" min="0" step="1" placeholder="What you paid"><small>What you paid — used for profit and the balance sheet</small></div>
         </div>
 
         <div class="notice notice--ok" id="pmPricePreview" style="display:none"></div>

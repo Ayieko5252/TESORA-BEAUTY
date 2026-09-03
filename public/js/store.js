@@ -377,6 +377,13 @@
     $('#acctDot').hidden = !on;
     $('#accountTitle').textContent = on ? 'Your account' : 'Sign in';
 
+    // Who is signed in, shown in the header so it is never a guess.
+    const who = $('#acctWho');
+    who.hidden = !on;
+    who.textContent = on ? state.auth.customer.name.split(' ')[0] : '';
+    $('#accountOpen').setAttribute('aria-label',
+      on ? `Your account — signed in as ${state.auth.customer.name}` : 'Sign in to your account');
+
     // The checkout is only open to people with an account.
     $('#checkoutGate').hidden = on;
     $('#checkoutForm').hidden = !on;
@@ -771,7 +778,7 @@
       $('#checkoutMsg').innerHTML = `<div class="notice notice--error">Network problem — please try again.</div>`;
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Place order';
+      btn.textContent = 'Place order & pay';
     }
   }
 

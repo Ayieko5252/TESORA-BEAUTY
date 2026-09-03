@@ -447,3 +447,13 @@ tbody tr:last-child td { border-bottom: 0; }
 .dl__title { font-family: var(--serif); font-size: 1.05rem; margin-bottom: .3rem; }
 .dl p { font-size: .82rem; color: var(--muted); line-height: 1.55; margin: 0 0 .9rem; flex: 1; }
 .dl__actions { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
+
+/* buying price, editable straight in the inventory table */
+.cost-edit {
+  width: 88px; text-align: center; padding: .4rem .3rem;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--white);
+  font-variant-numeric: tabular-nums;
+}
+.cost-edit:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+/* an empty one is worth noticing — it is what makes profit incomplete */
+.cost-edit--empty { border-style: dashed; border-color: var(--warn); background: var(--warn-bg); }

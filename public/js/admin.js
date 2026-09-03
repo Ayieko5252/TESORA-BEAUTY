@@ -279,6 +279,11 @@
             <button data-stock-inc="${p.id}" aria-label="Increase">+</button>
           </div>
         </td>
+        <td class="t-center">
+          <input class="cost-edit${p.costPrice ? '' : ' cost-edit--empty'}" type="number" min="0" step="1"
+                 value="${p.costPrice || ''}" placeholder="—" title="What you paid for one unit"
+                 data-cost-set="${p.id}">
+        </td>
         <td class="t-right">${money(p.salePrice * p.stock)}</td>
         <td class="t-right" style="white-space:nowrap">
           <button class="btn btn--light btn--sm" data-restock="${p.id}">+10</button>
@@ -930,6 +935,10 @@
       if (id) setOrderStatus(id, e.target.value);
       const stockId = e.target.dataset.stockSet;
       if (stockId) patchProduct(stockId, { stock: Number(e.target.value) || 0 }, 'Stock updated');
+      // Buying price, edited straight in the inventory table so a whole
+      // catalogue can be costed without opening every product.
+      const costId = e.target.dataset.costSet;
+      if (costId) patchProduct(costId, { costPrice: Number(e.target.value) || 0 }, 'Buying price saved');
     });
 
     document.addEventListener('click', (e) => {

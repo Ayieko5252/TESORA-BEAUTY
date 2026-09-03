@@ -40,8 +40,9 @@
       <button class="icon-btn burger" id="burger" aria-label="Menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
-      <button class="icon-btn" id="accountOpen" aria-label="Your account">
+      <button class="icon-btn icon-btn--acct" id="accountOpen" aria-label="Your account">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <span class="acct-who" id="acctWho" hidden></span>
         <span class="acct-dot" id="acctDot" hidden></span>
       </button>
       <button class="icon-btn cart-btn" id="cartOpen" aria-label="Open cart">
@@ -400,9 +401,9 @@
         <textarea id="coNotes" name="notes" placeholder="Shade preference, gift wrapping, landmark…"></textarea>
       </div>
       <div class="totals" id="checkoutTotals"></div>
-      <button class="btn btn--gold btn--block" id="placeOrder" type="submit">Place order</button>
+      <button class="btn btn--gold btn--block" id="placeOrder" type="submit">Place order &amp; pay</button>
       <p style="font-size:.78rem;color:var(--muted);margin-top:.9rem;text-align:center">
-        We'll confirm your order on WhatsApp before delivery.
+        The M-Pesa prompt comes to your phone as soon as you tap this.
       </p>
     </form>
   </div>
