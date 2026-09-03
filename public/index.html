@@ -40,6 +40,10 @@
       <button class="icon-btn burger" id="burger" aria-label="Menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
+      <button class="icon-btn" id="accountOpen" aria-label="Your account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <span class="acct-dot" id="acctDot" hidden></span>
+      </button>
       <button class="icon-btn cart-btn" id="cartOpen" aria-label="Open cart">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
         <span class="cart-count" id="cartCount" hidden>0</span>
@@ -55,7 +59,7 @@
       <p class="hero__eyebrow">Makeup · Skincare · Body Care · Perfumes</p>
       <h1>Glow with <em>Confidence</em></h1>
       <p class="hero__script" id="heroTag">Your Beauty. Your Aura.</p>
-      <p class="hero__lede">Carefully selected beauty essentials — quality, authentic and affordable.
+      <p class="hero__lede">Carefully selected beauty essentials: quality, authentic and affordable.
         Everything you need to feel like the most radiant version of you.</p>
       <div class="hero__cta">
         <a class="btn btn--gold" href="#shop">Shop the collection</a>
@@ -101,7 +105,7 @@
     <div class="section__head">
       <p class="section__eyebrow">What we offer</p>
       <h2>Beauty essentials you'll love</h2>
-      <p>From glossy lips to glowing skin — shop by what you need today.</p>
+      <p>From glossy lips to glowing skin, shop by what you need today.</p>
     </div>
     <div class="cats" id="catGrid"></div>
   </div>
@@ -113,7 +117,7 @@
     <div class="section__head">
       <p class="section__eyebrow">The collection</p>
       <h2>Shop all products</h2>
-      <p>Live stock counts — what you see is what's on the shelf.</p>
+      <p>Live stock counts. What you see is what's on the shelf.</p>
     </div>
 
     <div class="chips" id="chips"></div>
@@ -164,7 +168,7 @@
   <div class="wrap section__head">
     <p class="section__eyebrow">Why shop with Tessora Beauty?</p>
     <h2>Little touches. Big difference.</h2>
-    <p>We hand-pick every product so you get trendy, quality beauty essentials at fair prices —
+    <p>We hand pick every product so you get trendy, quality beauty essentials at fair prices,
       packed with care and delivered fast. Place your order online or send us a message on WhatsApp
       and we'll take it from there.</p>
     <p style="margin-top:1.4rem">
@@ -220,7 +224,7 @@
     </div>
     <div class="footer__bottom">
       <span>© <span id="year"></span> Tessora Beauty. All rights reserved.</span>
-      <span>Nationwide delivery · Pay on delivery or M-Pesa</span>
+      <span>Nationwide delivery · Pay securely with M-Pesa</span>
     </div>
   </div>
 </footer>
@@ -241,6 +245,87 @@
   <div class="drawer__foot" id="cartFoot"></div>
 </aside>
 
+<aside class="drawer" id="accountDrawer" aria-label="Your account">
+  <div class="drawer__head">
+    <h3 id="accountTitle">Your account</h3>
+    <button class="icon-btn" id="accountClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="drawer__body">
+    <div id="accountMsg"></div>
+
+    <!-- signed out: sign in / create account -->
+    <div id="accountAuth">
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab is-active" data-auth="login">Sign in</button>
+        <button type="button" class="auth-tab" data-auth="register">Create account</button>
+      </div>
+
+      <form id="loginForm" class="auth-pane">
+        <div class="field">
+          <label for="liEmail">Email</label>
+          <input id="liEmail" type="email" required autocomplete="email" placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label for="liPassword">Password</label>
+          <input id="liPassword" type="password" required autocomplete="current-password" placeholder="Your password">
+        </div>
+        <button class="btn btn--gold btn--block" type="submit">Sign in</button>
+      </form>
+
+      <form id="registerForm" class="auth-pane" hidden>
+        <div class="field">
+          <label for="rgName">Full name *</label>
+          <input id="rgName" required autocomplete="name" placeholder="Jane Wanjiru">
+        </div>
+        <div class="field">
+          <label for="rgEmail">Email *</label>
+          <input id="rgEmail" type="email" required autocomplete="email" placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label for="rgPhone">Phone number *</label>
+          <input id="rgPhone" type="tel" required autocomplete="tel" placeholder="07XX XXX XXX">
+        </div>
+        <div class="field">
+          <label for="rgPassword">Password *</label>
+          <input id="rgPassword" type="password" required autocomplete="new-password" placeholder="At least 8 characters">
+          <small>At least 8 characters, and not only numbers.</small>
+        </div>
+        <button class="btn btn--gold btn--block" type="submit">Create my account</button>
+        <p class="auth-note">Your delivery location is saved after your first order, so checkout is quicker next time.</p>
+      </form>
+    </div>
+
+    <!-- signed in: profile + order history -->
+    <div id="accountPanel" hidden>
+      <div class="acct-card">
+        <div class="acct-card__name" id="acctName">—</div>
+        <div class="acct-card__meta" id="acctMeta">—</div>
+        <div class="acct-card__meta" id="acctAddress"></div>
+      </div>
+
+      <div class="acct-actions">
+        <button class="btn btn--outline" id="acctSignOut" type="button">Sign out</button>
+        <button class="btn btn--outline" id="acctTogglePassword" type="button">Change password</button>
+      </div>
+
+      <form id="acctPasswordForm" class="auth-pane" hidden>
+        <div class="field">
+          <label for="acCurrent">Current password</label>
+          <input id="acCurrent" type="password" required autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label for="acNew">New password</label>
+          <input id="acNew" type="password" required autocomplete="new-password" placeholder="At least 8 characters">
+        </div>
+        <button class="btn btn--gold btn--block" type="submit">Update password</button>
+      </form>
+
+      <h4 class="acct-heading">Your orders</h4>
+      <div id="acctOrders"></div>
+    </div>
+  </div>
+</aside>
+
 <aside class="drawer" id="checkoutDrawer" aria-label="Checkout">
   <div class="drawer__head">
     <h3>Checkout</h3>
@@ -248,6 +333,21 @@
   </div>
   <div class="drawer__body">
     <div id="checkoutMsg"></div>
+
+    <!-- Shown when nobody is signed in: ordering needs an account. -->
+    <div id="checkoutGate" hidden>
+      <div class="gate">
+        <div class="gate__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        </div>
+        <h4>Sign in to place your order</h4>
+        <p>Your details and delivery location are saved, so next time checkout takes seconds — and you can follow every order.</p>
+        <button class="btn btn--gold btn--block" id="gateSignIn" type="button">Sign in or create an account</button>
+      </div>
+    </div>
+
+    <div class="signed-as" id="signedAs" hidden></div>
+
     <form id="checkoutForm">
       <div class="field">
         <label for="coName">Full name *</label>
@@ -257,10 +357,44 @@
         <label for="coPhone">Phone number *</label>
         <input id="coPhone" name="phone" required autocomplete="tel" placeholder="07XX XXX XXX">
       </div>
+
       <div class="field">
-        <label for="coLocation">Delivery location</label>
-        <input id="coLocation" name="location" autocomplete="street-address" placeholder="Estate / street / pickup point">
+        <label for="coLocation">Delivery location *</label>
+        <input id="coLocation" name="location" required autocomplete="street-address" placeholder="Estate, street or pickup point">
       </div>
+
+      <div class="field" id="mapSearchField" hidden>
+        <label for="mapSearch">Find your spot on the map</label>
+        <input id="mapSearch" type="text" placeholder="Search your area, then drag the pin">
+      </div>
+      <div id="mapWrap" hidden>
+        <div id="checkoutMap"></div>
+        <p class="map-hint">Drag the pin to your exact delivery point so we can calculate delivery.</p>
+      </div>
+
+      <div class="notice" id="deliveryEstimate" hidden></div>
+
+      <div class="field">
+        <label>Payment</label>
+        <div class="pay-single">
+          <div class="pay-single__mark">M-PESA</div>
+          <div>
+            <b>Pay with M-Pesa</b>
+            <small>A prompt comes to your phone. Enter your M-Pesa PIN to pay.</small>
+          </div>
+        </div>
+        <div class="notice notice--warn" id="mpesaOffNotice" hidden>
+          M-Pesa checkout is being switched on. Place your order and send it on
+          WhatsApp — we'll confirm payment with you there.
+        </div>
+      </div>
+
+      <div class="field" id="mpesaPhoneField">
+        <label for="coMpesaPhone">M-Pesa number *</label>
+        <input id="coMpesaPhone" type="tel" autocomplete="tel" placeholder="07XX XXX XXX">
+        <small>The number that will receive the payment prompt.</small>
+      </div>
+
       <div class="field">
         <label for="coNotes">Order notes</label>
         <textarea id="coNotes" name="notes" placeholder="Shade preference, gift wrapping, landmark…"></textarea>

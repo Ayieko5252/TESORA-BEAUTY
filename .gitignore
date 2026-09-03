@@ -8,3 +8,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 *.tmp
+
+# Netlify CLI local state and build output
+.netlify/
+
+# Local data backups taken before a deploy
+backups/

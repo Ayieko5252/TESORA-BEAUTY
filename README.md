@@ -1,10 +1,20 @@
 # Tessora Beauty — online cosmetic store
 
-A complete online shop for Tessora Beauty: a customer storefront plus a private admin
-panel where you upload products, set prices and discounts, and manage stock and orders.
+A complete online shop for Tessora Beauty: a customer storefront with accounts, M-Pesa
+payment, mapped delivery and receipts, plus a private admin panel where you upload
+products, set prices and discounts, manage stock and orders, and see everything that has
+happened in the store.
 
-Built with plain Node.js, HTML, CSS and JavaScript — **no dependencies to install**,
-nothing to build. Data lives in `data/db.json`, product photos in `data/uploads/`.
+Built with plain Node.js, HTML, CSS and JavaScript — nothing to build, and the only
+dependency is `@netlify/blobs`, which is used when the shop runs on Netlify.
+
+**Live at [tessora-beauty.netlify.app](https://tessora-beauty.netlify.app)**, where the
+API runs as a Netlify function and the data lives in Netlify Blobs. See
+**[NETLIFY-DEPLOY.md](NETLIFY-DEPLOY.md)** for deploying and for switching on Maps,
+M-Pesa and emailed reports.
+
+Run locally and it uses `data/db.json` instead, with photos in `data/uploads/` — a
+separate database, so nothing you try locally touches the real shop.
 
 ---
 
@@ -21,7 +31,10 @@ Then open:
 | Storefront | http://localhost:3000 |
 | Admin panel | http://localhost:3000/admin |
 
-**Admin password: `1234`** — change it any time in Admin → Settings.
+**Starting admin password: `1234`** — change it in Admin → Settings → Admin password.
+It must be at least 8 characters and not only digits. On the live shop the starting
+password comes from the `ADMIN_PASSWORD` environment variable in Netlify, and is saved as
+a hash the first time you sign in so you can change it from the panel afterwards.
 
 To use a different port: `set PORT=8080` (PowerShell: `$env:PORT=8080`) before `npm start`.
 
@@ -63,12 +76,86 @@ Set a discount percentage on the product. The shop then shows the new price, the
 crossed out, a `-20%` badge, and how much the customer saves. Discounted items also appear
 in the **Offers** section on the home page. Set the discount back to 0 to end the offer.
 
-## How orders reach you
+## How customers order
 
-A customer fills in name, phone and location and places the order. It is saved to your
-admin panel immediately, and they get a **Send order on WhatsApp** button that opens a
-chat with the full order already written out. Customers can also skip the form and order
-straight from the cart via WhatsApp.
+Shoppers **create an account** first — name, email, phone and a password. Their details
+and delivery location are saved, so their next order takes seconds, and every order and
+receipt stays in **Your account → Your orders**.
+
+At checkout they pin their delivery point on the map. The shop measures how far that is
+from you and works out the delivery charge and how long delivery should take, before they
+commit to anything.
+
+## How payment works
+
+**Everything is paid up front by M-Pesa. The shop does not take cash on delivery.**
+
+Placing an order sends an M-Pesa prompt (STK push) to the customer's phone; they enter
+their PIN and the order is marked paid, with the M-Pesa receipt number recorded against it.
+
+Until M-Pesa is configured in Admin → Settings → Payments, orders are still taken and
+saved as **awaiting payment**, and the customer is pointed at WhatsApp to settle — they
+are never offered payment on delivery.
+
+## Delivery charges and timing
+
+Delivery is **15 KSh per kilometre** from your shop, and how long it takes is estimated
+from the same distance:
+
+| Distance | Arrives |
+| --- | --- |
+| up to 5 km | Same day or next day |
+| up to 15 km | 1–2 days |
+| up to 40 km | 2–3 days |
+| up to 100 km | 3–4 days |
+| up to 300 km | 4–5 days |
+| beyond that | 5–7 days |
+
+Free delivery still overrides this once an order passes your free-delivery threshold.
+
+## Receipts
+
+Every order gets a receipt in Tessora's colours, showing the full cost breakdown — each
+item, the subtotal, exactly how the delivery charge was worked out (`3.8 km × KSh 15/km`),
+and the total — plus where it is going and when it should arrive. Customers can open it
+from their order confirmation or their account, and print or save it as a PDF.
+
+## Everything is recorded
+
+**Admin → Activity** is the store's paper trail: every product added, every price and
+stock change with its before and after, every order placed, confirmed or cancelled, every
+payment, every settings change and every password change — with the time and who did it.
+
+The same tab builds a **store report** for today, the last 7 days or the last 30 days:
+what sold, what it earned, what needs restocking, and everything that changed. You can
+email it to yourself once a Resend API key is set in Settings → Reports.
+
+## The books, and downloading your data
+
+**Admin → Activity → The books & downloads** gives you five things:
+
+| Download | What it is |
+| --- | --- |
+| **Balance sheet** | What the shop owns and owes today — cash collected, money customers still owe you, and stock on hand — and the equity that leaves. |
+| **Financial analysis** | Sales, cost of goods sold, gross profit and margin, cancellations, cash collected vs. outstanding, your most profitable products, and the daily trend. Pick today, 7 / 30 / 90 days, or all time. |
+| **Inventory** | Every product with cost, price, discount, stock, and what that stock is worth at cost and at retail. |
+| **Orders** | Every order with customer, distance, delivery charge, payment status and M-Pesa receipt. |
+| **Full backup** | Products, orders, customers and the activity log in one file. Passwords and payment secrets are never included. |
+
+The two statements open as a page you can **Print / Save as PDF**; everything else
+downloads as a spreadsheet that opens in Excel or Google Sheets.
+
+### Cost prices
+
+Profit needs to know what you paid. Each product now has an optional **Cost price**
+(Admin → Products). Where it is missing, the shop does not guess — it counts that stock
+as zero and prints a plain warning on the statement telling you how many products are
+missing a cost. Fill them in and the figures become exact.
+
+The admin panel refreshes on its own every few seconds — new orders, stock and activity
+appear without anyone pressing reload, and the **Live** dot in the sidebar shows when it
+last checked. The storefront does the same with stock counts, so a customer never adds
+something that has just sold out. Both pause while the tab is in the background.
 
 ---
 

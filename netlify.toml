@@ -1,0 +1,39 @@
+# Tessora Beauty — Netlify config.
+#
+# Two sides on one site:
+#   /        the shop customers browse
+#   /admin   where you manage products, stock, orders and reports
+#
+# The API, the receipts and the product photos are all served by the Netlify
+# function in netlify/functions/api.mjs, and the data lives in Netlify Blobs —
+# so everything you add in the admin panel stays put between deploys.
+
+[build]
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Pretty URL for the admin panel: /admin serves /admin.html
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+# Pretty URL for a receipt: /receipt?order=…&token=… serves the receipt page
+[[redirects]]
+  from = "/receipt"
+  to = "/receipt.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "same-origin"
+
+[[headers]]
+  for = "/admin"
+  [headers.values]
+    X-Robots-Tag = "noindex"

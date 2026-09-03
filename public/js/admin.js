@@ -87,6 +87,7 @@
   }
 
   function signOut(expired = false) {
+    stopLiveUpdates();
     state.token = '';
     sessionStorage.removeItem(TOKEN_KEY);
     $('#app').classList.remove('is-ready');
@@ -98,15 +99,23 @@
     $('#login').style.display = 'none';
     $('#app').classList.add('is-ready');
     await refresh();
+    startLiveUpdates();
   }
 
   /* ------------------------------------------------------------ loading */
-  async function refresh() {
+  /**
+   * Reload everything from the server and redraw.
+   * `live` marks an automatic background refresh: those must never re-fill the
+   * settings forms, or a half-typed change would be wiped out mid-edit.
+   */
+  async function refresh({ live = false } = {}) {
     const data = await api('/admin/overview');
     Object.assign(state, {
       settings: data.settings, categories: data.categories,
-      products: data.products, orders: data.orders, stats: data.stats
+      products: data.products, orders: data.orders, stats: data.stats,
+      customers: data.customers || []
     });
+    setActivityBadge(data.activityUnread || 0);
     $('#globalNotice').innerHTML = state.settings.passwordIsDefault
       ? `<div class="notice notice--warn">
            <b>Security:</b> you are still using the default password.
@@ -118,7 +127,7 @@
     renderProducts();
     renderInventory();
     renderOrders();
-    fillSettings();
+    if (!live || !$('#panel-settings').classList.contains('is-active')) fillSettings();
     renderBadges();
   }
 
@@ -181,6 +190,17 @@
     delivered: '<span class="pill pill--ok">Delivered</span>',
     cancelled: '<span class="pill pill--muted">Cancelled</span>'
   }[status] || `<span class="pill pill--muted">${esc(status)}</span>`);
+
+  // Every order is paid by M-Pesa — the shop does not take cash on delivery.
+  const paymentPill = (o) => {
+    const p = o.payment || { status: 'unpaid' };
+    if (p.status === 'paid') {
+      return `<span class="pill pill--ok">M-Pesa paid${p.receipt ? ` · ${esc(p.receipt)}` : ''}</span>`;
+    }
+    if (p.status === 'processing') return '<span class="pill pill--info">M-Pesa pending</span>';
+    if (p.status === 'failed') return '<span class="pill pill--bad">M-Pesa failed</span>';
+    return '<span class="pill pill--warn">Awaiting payment</span>';
+  };
 
   /* ---------------------------------------------------------- products */
   function filteredProducts() {
@@ -278,7 +298,7 @@
         <td>${esc(o.customer.name)}<br><small style="color:var(--muted)">${esc(o.customer.phone)}</small></td>
         <td>${o.items.length} item${o.items.length === 1 ? '' : 's'}<br>
             <small style="color:var(--muted)">${esc(o.items.map((i) => `${i.name} x${i.qty}`).join(', ').slice(0, 46))}${o.items.map((i) => i.name).join(', ').length > 46 ? '…' : ''}</small></td>
-        <td class="t-right"><b>${money(o.total)}</b></td>
+        <td class="t-right"><b>${money(o.total)}</b><br>${paymentPill(o)}</td>
         <td class="t-center">${statusPill(o.status)}</td>
         <td class="t-right" style="white-space:nowrap">
           <button class="btn btn--light btn--sm" data-order="${o.id}">View</button>
@@ -304,7 +324,8 @@
         </div>
         <div>
           <p style="font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Order</p>
-          <p>${dateFmt(o.createdAt)}<br>${statusPill(o.status)}</p>
+          <p>${dateFmt(o.createdAt)}<br>${statusPill(o.status)} ${paymentPill(o)}</p>
+          ${o.payment?.receipt ? `<p style="font-size:.86rem">M-Pesa receipt: <b>${esc(o.payment.receipt)}</b></p>` : ''}
           <a class="btn btn--light btn--sm" href="${esc(wa)}" target="_blank" rel="noopener">Message on WhatsApp</a>
         </div>
       </div>
@@ -320,7 +341,7 @@
       </div>
       <div class="list" style="margin-top:1rem">
         <div class="list__row"><span>Subtotal</span><span class="right">${money(o.subtotal)}</span></div>
-        <div class="list__row"><span>Delivery</span><span class="right">${o.deliveryFee === 0 ? 'Free' : money(o.deliveryFee)}</span></div>
+        <div class="list__row"><span>Delivery${o.distanceKm != null ? ` (~${o.distanceKm} km)` : ''}</span><span class="right">${o.deliveryFee === 0 ? 'Free' : money(o.deliveryFee)}</span></div>
         <div class="list__row"><b>Total</b><b class="right">${money(o.total)}</b></div>
       </div>`;
     $('#orderModal').classList.add('is-open');
@@ -350,6 +371,7 @@
     $('#pmPrice').value = product?.price ?? '';
     $('#pmDiscount').value = product?.discount ?? 0;
     $('#pmStock').value = product?.stock ?? 0;
+    $('#pmCostPrice').value = product?.costPrice || '';
     $('#pmDescription').value = product?.description || '';
     $('#pmActive').checked = product ? product.active : true;
     $('#pmFeatured').checked = product ? product.featured : false;
@@ -410,6 +432,7 @@
       price: Number($('#pmPrice').value),
       discount: Number($('#pmDiscount').value) || 0,
       stock: Number($('#pmStock').value) || 0,
+      costPrice: Number($('#pmCostPrice').value) || 0,
       description: $('#pmDescription').value.trim(),
       active: $('#pmActive').checked,
       featured: $('#pmFeatured').checked,
@@ -475,6 +498,35 @@
     $('#setDelivery').value = s.deliveryFee ?? 0;
     $('#setFreeOver').value = s.freeDeliveryOver ?? 0;
     $('#setThreshold').value = s.lowStockThreshold ?? 5;
+
+    // reports and alerts (the API key is never returned — blank means "keep")
+    $('#setReportEmail').value = s.reportEmail || '';
+    $('#setEmailFrom').value = s.emailFrom || '';
+    $('#setNotifyNewOrder').checked = Boolean(s.notifyNewOrder);
+    $('#setNotifyPayment').checked = Boolean(s.notifyPayment);
+    $('#setNotifyStatus').checked = Boolean(s.notifyStatusChange);
+    $('#setNotifyChanges').checked = Boolean(s.notifyAdminChanges);
+    const status = $('#emailStatus');
+    status.textContent = s.emailReady ? 'Email ready' : (s.emailApiKeySet ? 'Key set — add a recipient' : 'Not configured');
+    status.className = `tag ${s.emailReady ? 'tag--ok' : 'tag--muted'}`;
+
+    // delivery-by-distance + maps
+    $('#setPerKm').value = s.deliveryPerKm ?? 15;
+    $('#setBaseFee').value = s.deliveryBaseFee ?? 0;
+    $('#setMapsKey').value = s.mapsApiKey || '';
+    $('#setStoreLat').value = s.storeLat ?? '';
+    $('#setStoreLng').value = s.storeLng ?? '';
+
+    // M-Pesa (secrets are never returned; the inputs stay blank = keep existing)
+    $('#setMpesaEnabled').checked = Boolean(s.mpesaEnabled);
+    $('#setMpesaEnv').value = s.mpesaEnv || 'sandbox';
+    $('#setMpesaType').value = s.mpesaType || 'paybill';
+    $('#setMpesaShortcode').value = s.mpesaShortcode || '';
+    $('#setMpesaTill').value = s.mpesaTill || '';
+    $('#setMpesaKey').value = s.mpesaConsumerKey || '';
+    $('#setMpesaCallback').value = s.mpesaCallbackUrl || '';
+    $('#setMpesaSecret').placeholder = s.mpesaConsumerSecretSet ? 'Saved — leave blank to keep' : 'Consumer secret';
+    $('#setMpesaPasskey').placeholder = s.mpesaPasskeySet ? 'Saved — leave blank to keep' : 'Passkey';
   }
 
   async function saveSettings(event) {
@@ -488,12 +540,41 @@
           email: $('#setEmail').value, instagram: $('#setInstagram').value,
           tiktok: $('#setTiktok').value, location: $('#setLocation').value,
           currency: $('#setCurrency').value, deliveryFee: $('#setDelivery').value,
-          freeDeliveryOver: $('#setFreeOver').value, lowStockThreshold: $('#setThreshold').value
+          freeDeliveryOver: $('#setFreeOver').value, lowStockThreshold: $('#setThreshold').value,
+          deliveryPerKm: $('#setPerKm').value, deliveryBaseFee: $('#setBaseFee').value,
+          mapsApiKey: $('#setMapsKey').value,
+          storeLat: $('#setStoreLat').value, storeLng: $('#setStoreLng').value
         }
       });
       await refresh();
       toast('Settings saved ♡');
     } catch (err) { toast(err.message, true); }
+  }
+
+  async function saveMpesa(event) {
+    event.preventDefault();
+    const body = {
+      mpesaEnabled: $('#setMpesaEnabled').checked,
+      mpesaEnv: $('#setMpesaEnv').value,
+      mpesaType: $('#setMpesaType').value,
+      mpesaShortcode: $('#setMpesaShortcode').value,
+      mpesaTill: $('#setMpesaTill').value,
+      mpesaConsumerKey: $('#setMpesaKey').value,
+      mpesaCallbackUrl: $('#setMpesaCallback').value
+    };
+    // Only send secrets when the owner actually typed a new one.
+    if ($('#setMpesaSecret').value) body.mpesaConsumerSecret = $('#setMpesaSecret').value;
+    if ($('#setMpesaPasskey').value) body.mpesaPasskey = $('#setMpesaPasskey').value;
+    try {
+      await api('/admin/settings', { method: 'PUT', body });
+      $('#setMpesaSecret').value = '';
+      $('#setMpesaPasskey').value = '';
+      $('#mpesaMsg').innerHTML = '<div class="notice notice--ok">M-Pesa settings saved.</div>';
+      await refresh();
+      toast('M-Pesa settings saved ♡');
+    } catch (err) {
+      $('#mpesaMsg').innerHTML = `<div class="notice notice--error">${esc(err.message)}</div>`;
+    }
   }
 
   async function changePassword(event) {
@@ -517,8 +598,280 @@
     }
   }
 
+  /* --------------------------------------------------- reports & alerts */
+
+  async function saveReportSettings(event) {
+    event.preventDefault();
+    const body = {
+      reportEmail: $('#setReportEmail').value.trim(),
+      emailFrom: $('#setEmailFrom').value.trim(),
+      notifyNewOrder: $('#setNotifyNewOrder').checked,
+      notifyPayment: $('#setNotifyPayment').checked,
+      notifyStatusChange: $('#setNotifyStatus').checked,
+      notifyAdminChanges: $('#setNotifyChanges').checked
+    };
+    // Only send the key when a new one has actually been typed.
+    if ($('#setEmailKey').value) body.emailApiKey = $('#setEmailKey').value.trim();
+    try {
+      await api('/admin/settings', { method: 'PUT', body });
+      $('#setEmailKey').value = '';
+      $('#reportSettingsMsg').innerHTML = '<div class="notice notice--ok">Report settings saved.</div>';
+      await refresh();
+      toast('Report settings saved ♡');
+    } catch (err) {
+      $('#reportSettingsMsg').innerHTML = `<div class="notice notice--error">${esc(err.message)}</div>`;
+    }
+  }
+
+  const GROUP_TONE = {
+    products: 'blush', stock: 'gold', orders: 'ink',
+    payments: 'ok', customers: 'blush', settings: 'muted', security: 'bad'
+  };
+
+  function renderActivity(entries) {
+    const box = $('#activityFeed');
+    if (!entries.length) {
+      box.innerHTML = '<p class="empty-line">Nothing recorded yet. Every change you make will appear here.</p>';
+      return;
+    }
+    box.innerHTML = entries.map((a) => {
+      const when = new Date(a.at);
+      const changes = (a.changes || []).length
+        ? `<div class="act__changes">${a.changes.map((c) =>
+            `<span class="act__change"><i>${esc(c.label)}</i> ${esc(c.from ?? '—')} → <b>${esc(c.to ?? '—')}</b></span>`
+          ).join('')}</div>`
+        : '';
+      return `
+        <div class="act ${a.read ? '' : 'act--unread'}">
+          <div class="act__when">
+            <b>${when.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })}</b>
+            <span>${when.toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}</span>
+          </div>
+          <div class="act__body">
+            <span class="act__tag act__tag--${GROUP_TONE[a.group] || 'muted'}">${esc(a.label)}</span>
+            ${a.target ? `<b class="act__target">${esc(a.target)}</b>` : ''}
+            <div class="act__summary">${esc(a.summary)}</div>
+            ${changes}
+          </div>
+          <div class="act__actor">${esc(a.actor)}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderReport(r) {
+    const m = (n) => money(n);
+    $('#reportStats').innerHTML = `
+      <div class="stat"><span>Orders</span><b>${r.orders.total}</b><small>${r.orders.pending} still pending</small></div>
+      <div class="stat stat--ok"><span>Revenue</span><b>${m(r.orders.revenue)}</b><small>Confirmed &amp; delivered</small></div>
+      <div class="stat"><span>Confirmed</span><b>${r.orders.confirmed}</b><small>${r.orders.delivered} delivered</small></div>
+      <div class="stat${r.orders.cancelled ? ' stat--bad' : ''}"><span>Cancelled</span><b>${r.orders.cancelled}</b><small>Stock returned automatically</small></div>
+      <div class="stat"><span>Paid by M-Pesa</span><b>${r.orders.paidOnline}</b><small>${m(r.orders.paidOnlineValue)} collected</small></div>
+      <div class="stat"><span>New customers</span><b>${r.customers.newInPeriod}</b><small>${r.customers.total} registered in total</small></div>`;
+
+    $('#reportTop').innerHTML = r.topProducts.length
+      ? `<table class="table"><tbody>${r.topProducts.map((p) => `
+          <tr><td>${esc(p.name)}</td><td class="num">${p.qty} sold</td><td class="num">${m(p.value)}</td></tr>`).join('')}
+         </tbody></table>`
+      : '<p class="empty-line">Nothing sold in this period.</p>';
+
+    const alerts = [
+      ...r.stock.outOfStock.map((p) => ({ name: p.name, note: 'Out of stock', tone: 'bad' })),
+      ...r.stock.lowStock.map((p) => ({ name: p.name, note: `Only ${p.stock} left`, tone: 'gold' }))
+    ];
+    $('#reportStock').innerHTML = alerts.length
+      ? `<table class="table"><tbody>${alerts.map((a) => `
+          <tr><td>${esc(a.name)}</td><td class="num"><span class="tag tag--${a.tone}">${esc(a.note)}</span></td></tr>`).join('')}
+         </tbody></table>`
+      : '<p class="empty-line">Every product is in stock ♡</p>';
+  }
+
+  async function loadActivity() {
+    try {
+      const group = $('#activityGroup').value;
+      const [act, rep] = await Promise.all([
+        api(`/admin/activity${group ? `?group=${encodeURIComponent(group)}` : ''}`),
+        api(`/admin/report?period=${encodeURIComponent($('#reportPeriod').value)}`)
+      ]);
+      renderActivity(act.entries || []);
+      renderReport(rep.report);
+      renderCostCoverage();
+      setActivityBadge(act.unread || 0);
+    } catch (err) {
+      $('#activityFeed').innerHTML = `<div class="notice notice--error">${esc(err.message)}</div>`;
+    }
+  }
+
+  function setActivityBadge(n) {
+    const badge = $('#badgeActivity');
+    badge.textContent = n;
+    badge.hidden = !n;
+  }
+
+  async function markActivityRead() {
+    try {
+      await api('/admin/activity/read', { method: 'POST' });
+      setActivityBadge(0);
+      await loadActivity();
+    } catch { /* the badge will correct itself on the next refresh */ }
+  }
+
+  async function emailReport() {
+    const btn = $('#sendReport');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      const res = await api('/admin/report/send', {
+        method: 'POST', body: { period: $('#reportPeriod').value }
+      });
+      $('#reportMsg').innerHTML = `<div class="notice notice--ok">Report sent to ${esc(res.to)}.</div>`;
+      toast('Report emailed ♡');
+    } catch (err) {
+      $('#reportMsg').innerHTML = `<div class="notice notice--error">${esc(err.message)}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Email me this report';
+    }
+  }
+
+  /* -------------------------------------------------- books & downloads */
+
+  // Downloads have to carry the admin token, and a plain <a href> cannot set a
+  // header — so fetch the file, then hand the browser a blob to save. This also
+  // keeps the token out of the URL, where it would end up in server logs.
+  async function fetchAsBlob(path) {
+    const res = await fetch(`/api${path}`, {
+      headers: state.token ? { Authorization: `Bearer ${state.token}` } : {}
+    });
+    if (res.status === 401) { signOut(true); throw new Error('Session expired'); }
+    if (!res.ok) {
+      let msg = 'Could not build that file';
+      try { msg = (await res.json()).error || msg; } catch { /* not JSON */ }
+      throw new Error(msg);
+    }
+    const name = (res.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)?.[1];
+    return { blob: await res.blob(), name };
+  }
+
+  function saveBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Give the browser a moment to start the download before revoking.
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  const exportPath = (what, format) => {
+    const period = $('#finPeriod') ? $('#finPeriod').value : '30d';
+    const q = new URLSearchParams({ format });
+    if (what === 'financials') q.set('period', period);
+    return `/admin/export/${what}?${q}`;
+  };
+
+  async function downloadExport(what) {
+    $('#exportMsg').innerHTML = '';
+    try {
+      const { blob, name } = await fetchAsBlob(exportPath(what, 'csv'));
+      saveBlob(blob, name || `tessora-${what}.csv`);
+      toast('Download started ♡');
+    } catch (err) {
+      $('#exportMsg').innerHTML = `<div class="notice notice--error">${esc(err.message)}</div>`;
+    }
+  }
+
+  /** Open a printable statement in its own tab. */
+  async function openStatement(what) {
+    $('#exportMsg').innerHTML = '';
+    // Opened before the await: browsers block window.open once the click has
+    // been forgotten, which an awaited fetch is long enough to cause.
+    const tab = window.open('', '_blank');
+    try {
+      const { blob } = await fetchAsBlob(exportPath(what, 'html'));
+      const url = URL.createObjectURL(blob);
+      if (tab) tab.location = url;
+      else saveBlob(blob, `tessora-${what}.html`);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      if (tab) tab.close();
+      $('#exportMsg').innerHTML = `<div class="notice notice--error">${esc(err.message)}</div>`;
+    }
+  }
+
+  /** Warn, gently, when profit figures would be built on missing cost prices. */
+  function renderCostCoverage() {
+    const el = $('#costCoverage');
+    if (!el) return;
+    const products = state.products || [];
+    const withCost = products.filter((p) => Number(p.costPrice) > 0).length;
+    if (!products.length) { el.textContent = ''; el.className = 'tag'; return; }
+    if (withCost === products.length) {
+      el.textContent = 'Cost prices complete';
+      el.className = 'tag tag--ok';
+    } else {
+      el.textContent = `${products.length - withCost} of ${products.length} missing a cost price`;
+      el.className = 'tag tag--gold';
+    }
+  }
+
+  /* ------------------------------------------------------ live updates */
+
+  // The panel keeps itself current: orders, stock and activity arrive without
+  // anyone pressing refresh. Netlify runs the API as functions, so there is no
+  // socket to hold open — this polls, but only while the tab is actually being
+  // looked at, and never while the shop owner is in the middle of something.
+  const LIVE_INTERVAL = 12000;
+  let liveTimer = null;
+  let liveFailures = 0;
+
+  /** True when a refresh would yank something out from under the user. */
+  function midEdit() {
+    if (document.querySelector('.modal.is-open')) return true;
+    const el = document.activeElement;
+    return Boolean(el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+  }
+
+  function setLiveStatus(ok, note) {
+    const el = $('#liveStatus');
+    if (!el) return;
+    el.innerHTML = `<span class="live-dot${ok ? '' : ' live-dot--stale'}"></span>${esc(note)}`;
+  }
+
+  async function liveTick() {
+    if (document.visibilityState !== 'visible' || !state.token || midEdit()) return;
+    try {
+      await refresh({ live: true });
+      // Keep whichever tab is open in step with the new data.
+      if ($('#panel-activity').classList.contains('is-active')) await loadActivity();
+      liveFailures = 0;
+      setLiveStatus(true, `Live · ${new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })}`);
+    } catch {
+      // A dropped request is normal on mobile data; only say so if it persists.
+      if (++liveFailures >= 2) setLiveStatus(false, 'Reconnecting…');
+    }
+  }
+
+  function startLiveUpdates() {
+    clearInterval(liveTimer);
+    liveTimer = setInterval(liveTick, LIVE_INTERVAL);
+    // Coming back to the tab should feel instant, not up to 12s stale.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') liveTick();
+    });
+    window.addEventListener('online', liveTick);
+    setLiveStatus(true, 'Live');
+  }
+
+  function stopLiveUpdates() {
+    clearInterval(liveTimer);
+    liveTimer = null;
+  }
+
   /* -------------------------------------------------------------- tabs */
   function showTab(tab) {
+    if (tab === 'activity') loadActivity();
     $$('.panel').forEach((p) => p.classList.toggle('is-active', p.id === `panel-${tab}`));
     $$('.side__link').forEach((b) => b.classList.toggle('is-active', b.dataset.tab === tab));
     $('#side').classList.remove('is-open');
@@ -543,6 +896,20 @@
 
     $('#settingsForm').addEventListener('submit', saveSettings);
     $('#passwordForm').addEventListener('submit', changePassword);
+    $('#mpesaForm').addEventListener('submit', saveMpesa);
+    $('#reportForm').addEventListener('submit', saveReportSettings);
+    $('#sendReport').addEventListener('click', emailReport);
+    $('#markRead').addEventListener('click', markActivityRead);
+    $('#activityGroup').addEventListener('change', loadActivity);
+    $('#reportPeriod').addEventListener('change', loadActivity);
+
+    // the books: statements open in a tab, spreadsheets download
+    document.addEventListener('click', (e) => {
+      const stmt = e.target.closest('[data-statement]');
+      if (stmt) { openStatement(stmt.dataset.statement); return; }
+      const dl = e.target.closest('[data-download]');
+      if (dl) downloadExport(dl.dataset.download);
+    });
 
     // image upload: click, file picker, drag & drop
     $('#pmDrop').addEventListener('click', () => $('#pmFiles').click());

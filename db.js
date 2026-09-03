@@ -54,6 +54,34 @@ function defaults() {
       freeDeliveryOver: 5000,
       lowStockThreshold: 5,
       announcement: 'Free delivery within Nairobi on orders over KSh 5,000',
+
+      // ---- Delivery by distance (charged per km from the store) ----
+      deliveryPerKm: 15,          // KSh charged for every km to the customer
+      deliveryBaseFee: 0,         // optional flat fee added on top of the per-km charge
+      storeLat: -1.286389,        // store origin used to measure distance (default: Nairobi CBD)
+      storeLng: 36.817223,
+      mapsApiKey: '',             // Google Maps browser key (Maps JS + Places + Distance Matrix)
+
+      // ---- M-Pesa (Safaricom Daraja STK Push) ----
+      mpesaEnabled: false,        // turn the "Pay with M-Pesa" option on once configured
+      mpesaEnv: 'sandbox',        // 'sandbox' while testing, 'production' when live
+      mpesaType: 'paybill',       // 'paybill' or 'till'
+      mpesaShortcode: '',         // Paybill / Head-Office (store) number used to sign the request
+      mpesaTill: '',              // Till number (only for Buy Goods); leave blank for Paybill
+      mpesaPasskey: '',           // Lipa na M-Pesa Online passkey (kept server-side, never sent to the shop)
+      mpesaConsumerKey: '',       // Daraja app consumer key (server-side only)
+      mpesaConsumerSecret: '',    // Daraja app consumer secret (server-side only)
+      mpesaCallbackUrl: '',       // e.g. https://yourshop.com/api/mpesa/callback (blank = auto from request)
+
+      // ---- Store reports and email alerts ----
+      reportEmail: '',            // where the store report is sent (blank = the store email above)
+      emailApiKey: '',            // Resend API key; without it, alerts stay in the activity log only
+      emailFrom: '',              // e.g. Tessora Beauty <orders@yourdomain.com>
+      notifyNewOrder: true,
+      notifyPayment: true,
+      notifyStatusChange: true,
+      notifyAdminChanges: false,  // off by default: every edit is already in the report
+
       adminPassword: hashPassword('1234'),
       // The shop owner chose this password deliberately, so the admin panel does not
       // nag about it. Set a longer one in Admin -> Settings before going public.
@@ -61,6 +89,8 @@ function defaults() {
     },
     products: [],
     orders: [],
+    customers: [],   // shoppers with an account
+    activity: [],    // the store's paper trail — see lib/activity.js
     counters: { order: 1000 }
   };
 }
@@ -86,6 +116,8 @@ export function load() {
     state.settings = { ...defaults().settings, ...state.settings };
     state.products ||= [];
     state.orders ||= [];
+    state.customers ||= [];
+    state.activity ||= [];
     state.counters ||= { order: 1000 };
   } catch {
     state = defaults();

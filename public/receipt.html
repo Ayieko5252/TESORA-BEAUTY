@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your receipt · Tessora Beauty</title>
+<meta name="robots" content="noindex">
+<style>
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: #fbf7f2; color: #12100f; text-align: center;
+    font-family: Jost, "Century Gothic", "Segoe UI", system-ui, sans-serif;
+  }
+  .box { padding: 2rem; }
+  h1 { font-family: "Playfair Display", Georgia, serif; font-weight: 700; font-size: 1.4rem; margin: 0 0 .4rem; }
+  p { color: #7b716c; font-size: .9rem; margin: 0 0 1.2rem; }
+  a {
+    display: inline-block; background: #12100f; color: #fff; text-decoration: none;
+    padding: .7rem 1.5rem; border-radius: 999px; font-size: .85rem; letter-spacing: .1em;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>Opening your receipt…</h1>
+    <p id="msg">One moment.</p>
+    <a href="/">Back to the shop</a>
+  </div>
+<script>
+  // The receipt itself is rendered by the API so that the emailed copy and this
+  // page are always identical. This page just carries the order id and token.
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var order = q.get('order');
+    var token = q.get('token');
+    if (order && token) {
+      location.replace('/api/orders/' + encodeURIComponent(order) +
+        '/receipt?token=' + encodeURIComponent(token));
+    } else {
+      document.getElementById('msg').textContent =
+        'This receipt link is incomplete. Open it from your order confirmation or your account.';
+    }
+  })();
+</script>
+</body>
+</html>

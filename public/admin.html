@@ -57,12 +57,18 @@
       Orders
       <span class="side__badge" id="badgeOrders" hidden>0</span>
     </button>
+    <button class="side__link" data-tab="activity">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+      Activity
+      <span class="side__badge" id="badgeActivity" hidden>0</span>
+    </button>
     <button class="side__link" data-tab="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9 4.6V4a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.6 1.6 0 0 0 19.4 9H21a2 2 0 1 1 0 4h-.1Z"/></svg>
       Settings
     </button>
 
     <div class="side__foot">
+      <div class="side__live" id="liveStatus"><span class="live-dot"></span>Live</div>
       <a href="/" target="_blank">View storefront ↗</a>
       <button id="logout">Sign out</button>
     </div>
@@ -234,6 +240,132 @@
     </section>
 
     <!-- ----------------------------------------------------- settings -->
+    <!-- ---------------------------------------------------- activity -->
+    <section class="panel" id="panel-activity">
+      <div class="topbar">
+        <div>
+          <h1>Activity &amp; reports</h1>
+          <p>Everything that has happened in your store — and the report you can email yourself.</p>
+        </div>
+        <div class="topbar__actions">
+          <select class="input" id="reportPeriod" style="width:auto">
+            <option value="today">Today</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+          </select>
+          <button class="btn btn--dark" id="sendReport">Email me this report</button>
+        </div>
+      </div>
+
+      <div id="reportMsg"></div>
+
+      <!-- the report -->
+      <div class="stats" id="reportStats"></div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card__head"><h2>Best sellers</h2></div>
+          <div class="card__body" id="reportTop"></div>
+        </div>
+        <div class="card">
+          <div class="card__head"><h2>Needs restocking</h2></div>
+          <div class="card__body" id="reportStock"></div>
+        </div>
+      </div>
+
+      <!-- the books -->
+      <div class="card">
+        <div class="card__head">
+          <h2>The books &amp; downloads</h2>
+          <div class="right"><span class="tag" id="costCoverage"></span></div>
+        </div>
+        <div class="card__body">
+          <div id="exportMsg"></div>
+          <p class="card__lead">
+            Statements open in a new tab — use <b>Print / Save PDF</b> there to keep a copy.
+            The spreadsheet versions open in Excel or Google Sheets.
+          </p>
+
+          <div class="dl-grid">
+            <div class="dl">
+              <div class="dl__title">Balance sheet</div>
+              <p>What the shop owns and owes right now: cash collected, money owed to you, and stock on hand.</p>
+              <div class="dl__actions">
+                <button class="btn btn--dark btn--sm" data-statement="balance-sheet">View / PDF</button>
+                <button class="btn btn--light btn--sm" data-download="balance-sheet">Spreadsheet</button>
+              </div>
+            </div>
+
+            <div class="dl">
+              <div class="dl__title">Financial analysis</div>
+              <p>Sales, cost of goods, gross profit and margin, your most profitable products, and the daily trend.</p>
+              <div class="dl__actions">
+                <select class="input" id="finPeriod" style="width:auto">
+                  <option value="today">Today</option>
+                  <option value="7d">Last 7 days</option>
+                  <option value="30d" selected>Last 30 days</option>
+                  <option value="90d">Last 90 days</option>
+                  <option value="all">All time</option>
+                </select>
+                <button class="btn btn--dark btn--sm" data-statement="financials">View / PDF</button>
+                <button class="btn btn--light btn--sm" data-download="financials">Spreadsheet</button>
+              </div>
+            </div>
+
+            <div class="dl">
+              <div class="dl__title">Inventory</div>
+              <p>Every product with cost, price, stock, and what that stock is worth at cost and at retail.</p>
+              <div class="dl__actions">
+                <button class="btn btn--dark btn--sm" data-download="inventory">Download inventory</button>
+              </div>
+            </div>
+
+            <div class="dl">
+              <div class="dl__title">Orders</div>
+              <p>Every order with customer, distance, delivery charge, payment status and M-Pesa receipt.</p>
+              <div class="dl__actions">
+                <button class="btn btn--dark btn--sm" data-download="orders">Download orders</button>
+              </div>
+            </div>
+
+            <div class="dl dl--wide">
+              <div class="dl__title">Full backup</div>
+              <p>
+                Everything — products, orders, customers and the activity log — in one file.
+                Keep one before any big change. Passwords and payment secrets are never included.
+              </p>
+              <div class="dl__actions">
+                <button class="btn btn--gold btn--sm" data-download="backup">Download full backup</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- the log -->
+      <div class="card">
+        <div class="card__head">
+          <h2>Everything that changed</h2>
+          <div class="right">
+            <select id="activityGroup" class="input" style="width:auto">
+              <option value="">All activity</option>
+              <option value="products">Products</option>
+              <option value="stock">Stock</option>
+              <option value="orders">Orders</option>
+              <option value="payments">Payments</option>
+              <option value="customers">Customers</option>
+              <option value="settings">Settings</option>
+              <option value="security">Security</option>
+            </select>
+            <button class="btn btn--light btn--sm" id="markRead">Mark all read</button>
+          </div>
+        </div>
+        <div class="card__body">
+          <div id="activityFeed"></div>
+        </div>
+      </div>
+    </section>
+
     <section class="panel" id="panel-settings">
       <div class="topbar">
         <div><h1>Settings</h1><p>Store details, delivery and your admin password.</p></div>
@@ -262,10 +394,22 @@
                 <div class="field"><label for="setCurrency">Currency symbol</label><input id="setCurrency" placeholder="KSh"></div>
               </div>
               <div class="grid-3">
-                <div class="field"><label for="setDelivery">Delivery fee</label><input id="setDelivery" type="number" min="0"></div>
+                <div class="field"><label for="setDelivery">Flat delivery fee</label><input id="setDelivery" type="number" min="0"><small>Used when there's no map pin</small></div>
                 <div class="field"><label for="setFreeOver">Free delivery over</label><input id="setFreeOver" type="number" min="0"><small>0 = never free</small></div>
                 <div class="field"><label for="setThreshold">Low stock alert at</label><input id="setThreshold" type="number" min="1" max="100"></div>
               </div>
+
+              <h3 class="set-sub">Delivery by distance</h3>
+              <div class="grid-3">
+                <div class="field"><label for="setPerKm">Charge per km (KSh)</label><input id="setPerKm" type="number" min="0" placeholder="20"></div>
+                <div class="field"><label for="setBaseFee">Base fee (KSh)</label><input id="setBaseFee" type="number" min="0" placeholder="0"><small>Added on top of per-km</small></div>
+                <div class="field"><label for="setMapsKey">Google Maps API key</label><input id="setMapsKey" placeholder="AIza…"><small>Maps JS + Places + Distance Matrix</small></div>
+              </div>
+              <div class="grid-2">
+                <div class="field"><label for="setStoreLat">Store latitude</label><input id="setStoreLat" type="number" step="any" placeholder="-1.286389"></div>
+                <div class="field"><label for="setStoreLng">Store longitude</label><input id="setStoreLng" type="number" step="any" placeholder="36.817223"><small>Distance is measured from here</small></div>
+              </div>
+
               <button class="btn btn--gold" type="submit">Save settings</button>
             </form>
           </div>
@@ -277,9 +421,88 @@
             <div id="passwordMsg"></div>
             <form id="passwordForm">
               <div class="field"><label for="pwCurrent">Current password</label><input id="pwCurrent" type="password" autocomplete="current-password" required></div>
-              <div class="field"><label for="pwNew">New password</label><input id="pwNew" type="password" autocomplete="new-password" required minlength="4"><small>At least 4 characters</small></div>
-              <div class="field"><label for="pwConfirm">Confirm new password</label><input id="pwConfirm" type="password" autocomplete="new-password" required minlength="4"></div>
+              <div class="field"><label for="pwNew">New password</label><input id="pwNew" type="password" autocomplete="new-password" required minlength="8"><small>At least 8 characters, and not only numbers</small></div>
+              <div class="field"><label for="pwConfirm">Confirm new password</label><input id="pwConfirm" type="password" autocomplete="new-password" required minlength="8"></div>
               <button class="btn btn--dark" type="submit">Change password</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column:1 / -1">
+          <div class="card__head">
+            <h2>Payments — M-Pesa</h2>
+            <label class="switch" style="margin:0"><input type="checkbox" id="setMpesaEnabled"> Accept M-Pesa at checkout</label>
+          </div>
+          <div class="card__body">
+            <div id="mpesaMsg"></div>
+            <p style="font-size:.84rem;color:var(--muted);margin-top:0">
+              From your Safaricom <b>Daraja</b> account (developer.safaricom.co.ke). Secrets are stored on the
+              server and never sent back to this page — leave a secret blank to keep the saved one.
+            </p>
+            <form id="mpesaForm">
+              <div class="grid-2">
+                <div class="field"><label for="setMpesaEnv">Environment</label>
+                  <select id="setMpesaEnv"><option value="sandbox">Sandbox (testing)</option><option value="production">Production (live)</option></select>
+                </div>
+                <div class="field"><label for="setMpesaType">Payment type</label>
+                  <select id="setMpesaType"><option value="paybill">Paybill</option><option value="till">Till (Buy Goods)</option></select>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field"><label for="setMpesaShortcode">Shortcode / Store number</label><input id="setMpesaShortcode" placeholder="e.g. 174379" inputmode="numeric"><small>Paybill number, or the Head-Office (store) number for a till</small></div>
+                <div class="field"><label for="setMpesaTill">Till number</label><input id="setMpesaTill" placeholder="Only for Buy Goods" inputmode="numeric"></div>
+              </div>
+              <div class="grid-2">
+                <div class="field"><label for="setMpesaKey">Consumer key</label><input id="setMpesaKey" autocomplete="off"></div>
+                <div class="field"><label for="setMpesaSecret">Consumer secret</label><input id="setMpesaSecret" type="password" autocomplete="new-password" placeholder="•••••• (leave blank to keep)"></div>
+              </div>
+              <div class="grid-2">
+                <div class="field"><label for="setMpesaPasskey">Passkey</label><input id="setMpesaPasskey" type="password" autocomplete="new-password" placeholder="•••••• (leave blank to keep)"></div>
+                <div class="field"><label for="setMpesaCallback">Callback URL</label><input id="setMpesaCallback" placeholder="https://yourshop.com/api/mpesa/callback"><small>Leave blank to use this site automatically</small></div>
+              </div>
+              <button class="btn btn--gold" type="submit">Save M-Pesa settings</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column:1 / -1">
+          <div class="card__head">
+            <h2>Reports &amp; alerts</h2>
+            <div class="right"><span class="tag" id="emailStatus">Not configured</span></div>
+          </div>
+          <div class="card__body">
+            <div id="reportSettingsMsg"></div>
+            <p class="card__lead">
+              Get the store report and order alerts by email. Everything is recorded in
+              <b>Activity</b> whether or not email is switched on — this just sends you a copy.
+            </p>
+            <form id="reportForm">
+              <div class="grid-2">
+                <div class="field">
+                  <label for="setReportEmail">Send reports to</label>
+                  <input id="setReportEmail" type="email" placeholder="you@example.com">
+                  <small>Leave blank to use the store email above</small>
+                </div>
+                <div class="field">
+                  <label for="setEmailFrom">Send from</label>
+                  <input id="setEmailFrom" placeholder="Tessora Beauty &lt;orders@yourdomain.com&gt;">
+                  <small>Must be a domain you've verified with Resend</small>
+                </div>
+              </div>
+              <div class="field">
+                <label for="setEmailKey">Resend API key</label>
+                <input id="setEmailKey" type="password" autocomplete="new-password" placeholder="re_•••••• (leave blank to keep)">
+                <small>Free at resend.com — 3,000 emails a month. Until this is set, alerts stay in Activity only.</small>
+              </div>
+
+              <div class="switch-grid">
+                <label class="switch"><input type="checkbox" id="setNotifyNewOrder"> Email me every new order</label>
+                <label class="switch"><input type="checkbox" id="setNotifyPayment"> Email me when a payment lands</label>
+                <label class="switch"><input type="checkbox" id="setNotifyStatus"> Email me when an order is confirmed or cancelled</label>
+                <label class="switch"><input type="checkbox" id="setNotifyChanges"> Email me every product edit <small>(noisy — the report covers this)</small></label>
+              </div>
+
+              <button class="btn btn--gold" type="submit">Save report settings</button>
             </form>
           </div>
         </div>
@@ -324,6 +547,7 @@
           <div class="field"><label for="pmPrice">Price *</label><input id="pmPrice" type="number" min="1" step="1" required placeholder="850"></div>
           <div class="field"><label for="pmDiscount">Discount %</label><input id="pmDiscount" type="number" min="0" max="95" step="1" value="0"></div>
           <div class="field"><label for="pmStock">Stock quantity *</label><input id="pmStock" type="number" min="0" step="1" required value="0"></div>
+          <div class="field"><label for="pmCostPrice">Cost price</label><input id="pmCostPrice" type="number" min="0" step="1" placeholder="What you paid"><small>Used for profit and the balance sheet</small></div>
         </div>
 
         <div class="notice notice--ok" id="pmPricePreview" style="display:none"></div>
