@@ -253,6 +253,68 @@ async function notify(db, { when, subject, body }) {
   await mailer.sendEmail(db.settings, { subject, html: body }).catch(() => {});
 }
 
+/* ------------------------------------------- new-order email, via Netlify */
+
+/**
+ * Email the store about a new order without any email service.
+ *
+ * Netlify emails every submission of the hidden "order-alert" form
+ * (public/order-alert.html) to the store's inbox, so posting the order into
+ * that form is what sends the email. If a Resend key has been added the Resend
+ * alert already covers it, and this steps aside so nobody gets two emails.
+ *
+ * It never fails the order: the order is saved before this runs, and if the
+ * form post doesn't go through that is written to the activity log instead.
+ */
+async function alertNewOrder(db, order, origin) {
+  if (mailer.isConfigured(db.settings)) return;
+
+  const currency = db.settings.currency || 'KSh';
+  const m = (n) => `${currency} ${Math.round(Number(n) || 0).toLocaleString('en-KE')}`;
+  const d = order.delivery || {};
+
+  const fields = {
+    'form-name': 'order-alert',
+    'bot-field': '',
+    Order: order.code,
+    Total: m(order.total),
+    Customer: order.customer.name,
+    Phone: order.customer.phone,
+    Email: order.customer.email || '—',
+    Deliver_to: order.customer.location || '—',
+    Items: order.items.map((i) => `${i.qty} × ${i.name} — ${m(i.price * i.qty)}`).join('\n'),
+    Delivery: [
+      order.deliveryFee === 0 ? 'Free' : m(order.deliveryFee),
+      d.distanceKm !== null && d.distanceKm !== undefined ? `${d.distanceKm} km` : '',
+      d.label ? `arrives ${d.label}` : ''
+    ].filter(Boolean).join(' · '),
+    Payment: order.payment?.status === 'paid' ? 'Paid by M-Pesa' : 'Awaiting M-Pesa payment',
+    Notes: order.customer.notes || '—',
+    Placed: new Date(order.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' }),
+    // The admin panel rather than a receipt link: a receipt link carries the
+    // order's payment token, which shouldn't travel around in email.
+    Manage: `${origin}/admin`
+  };
+
+  try {
+    const res = await fetch(`${origin}/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(fields).toString(),
+      redirect: 'manual',
+      signal: AbortSignal.timeout(6000)
+    });
+    // Netlify answers an accepted submission with a redirect or a 200.
+    if (res.status >= 400) throw new Error(`Netlify answered ${res.status}`);
+  } catch (err) {
+    log.record(db, {
+      type: 'order.alert_failed', actor: 'system', target: order.code, targetId: order.id,
+      summary: `The new-order email could not be sent (${err.message || err}). The order itself is saved.`
+    });
+    await persist(db);
+  }
+}
+
 /* ----------------------------------------------------------------- routes */
 export default async function handler(req) {
   const url = new URL(req.url);
@@ -476,6 +538,9 @@ export default async function handler(req) {
       subject: `New order ${order.code} — ${settings.currency || 'KSh'} ${order.total}`,
       body: mailer.orderHtml(order, settings, 'NEW ORDER')
     });
+    // Awaited, not fired off: Netlify can freeze a function as soon as it has
+    // responded, which would silently drop the email.
+    if (settings.notifyNewOrder !== false) await alertNewOrder(db, order, url.origin);
 
     return json(201, { order });
   }
