@@ -652,13 +652,113 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 }
 
 /* the signed-in shopper's name, next to the account icon */
-.icon-btn--acct { width: auto; padding: 0 .7rem; gap: .4rem; }
+.icon-btn--acct {
+  width: auto; min-width: 42px; padding: 0 .8rem 0 .65rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  border-radius: 999px; position: relative;
+}
 .acct-who {
   font-size: .82rem; letter-spacing: .02em; color: var(--ink);
   max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-/* on a narrow screen the icon alone has to carry it */
+.acct-who[hidden] { display: none; }
+/* Still shown on a phone — just shorter, so the header keeps its shape. */
 @media (max-width: 720px) {
-  .acct-who { display: none; }
-  .icon-btn--acct { width: 42px; padding: 0; }
+  .icon-btn--acct { padding: 0 .6rem 0 .5rem; gap: .3rem; }
+  .acct-who { font-size: .74rem; max-width: 4.6rem; }
+}
+
+/* ======================================================================
+   Phones, tablets and Windows
+   Layout follows screen width; tap-target size follows the pointer, so a
+   Windows PC with a mouse keeps the refined look while a phone — or a
+   touchscreen laptop — gets controls a thumb can actually hit.
+   ====================================================================== */
+
+/* Keyboard focus, for shoppers tabbing through the shop on Windows. */
+button:focus-visible, a:focus-visible, .select:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px;
+}
+.search:focus-within { border-color: var(--blush-deep); }
+
+/* On a phone 100vh includes the strip behind the browser's own toolbar, so the
+   product popup's "Add to bag" could sit out of reach. dvh is what is visible. */
+.modal__panel { max-height: 88vh; max-height: 88dvh; }
+
+/* The header's blur (backdrop-filter) makes it the anchor for the fixed phone
+   menu inside it, so the closed menu's -130% slide stopped short and its last
+   link sat over the announcement bar. Hide it outright when closed — which also
+   keeps its invisible links out of the keyboard and screen-reader order. The
+   visibility change waits for the slide to finish so closing still animates. */
+@media (max-width: 720px) {
+  .nav { visibility: hidden; transition: transform .28s, visibility 0s linear .28s; }
+  .nav.is-open { visibility: visible; transition: transform .28s, visibility 0s; }
+}
+
+/* the iPhone home indicator must not sit on top of the checkout button */
+.drawer__foot { padding-bottom: max(1.2rem, env(safe-area-inset-bottom)); }
+
+@media (max-width: 720px) {
+  /* the product popup becomes a sheet rising from the bottom */
+  .modal { padding: 0; place-items: end stretch; }
+  .modal__panel {
+    width: 100%; max-height: 92vh; max-height: 92dvh;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .modal__media img, .modal__ph { min-height: 0; height: 42vh; height: 42dvh; }
+  .modal__body { padding: 1.2rem 1.1rem 1.4rem; padding-bottom: max(1.4rem, env(safe-area-inset-bottom)); }
+  .drawer__head { padding: 1rem 1.1rem; }
+  .drawer__body { padding: 1rem 1.1rem; }
+  .drawer__foot { padding-left: 1.1rem; padding-right: 1.1rem; }
+}
+
+/* tablets and small Windows windows: the full nav stays, just tighter,
+   so it still fits alongside the signed-in name */
+@media (min-width: 721px) and (max-width: 1024px) {
+  .header__inner { gap: .9rem; }
+  .nav { gap: 1rem; }
+  .nav a { font-size: .76rem; letter-spacing: .08em; }
+  .brand__tag { display: none; }
+}
+
+/* phones — 360px Androids up to 430px iPhone Pro Max */
+@media (max-width: 430px) {
+  .header__inner { gap: .5rem; }
+  .brand { gap: .45rem; }
+  .brand__mark { width: 36px; height: 36px; }
+  .brand__name { font-size: 1rem; letter-spacing: .08em; }
+  .header__actions { gap: .35rem; }
+  .icon-btn { width: 40px; height: 40px; }
+  .icon-btn--acct { width: auto; min-width: 40px; padding: 0 .5rem 0 .4rem; }
+  .acct-who { max-width: 3.4rem; }
+}
+
+/* the very narrowest phones (320px): the T monogram carries the brand on its
+   own, which leaves room for the shopper's name */
+@media (max-width: 340px) {
+  .brand__name { display: none; }
+}
+
+/* ---- touch screens: phones, tablets and touchscreen laptops ---- */
+@media (pointer: coarse) {
+  .search { padding: 0 1rem; }
+  .search input { min-height: 46px; }
+  .chip { min-height: 42px; }
+  .linkish { display: inline-block; padding: .65rem .3rem; }
+  .select { padding: .75rem 1rem; min-height: 46px; }
+
+  /* iOS zooms the whole page into any field under 16px when it is tapped,
+     and doesn't zoom back out. Holding fields at 16px stops that. */
+  .search input, .select, .field input, .field select, .field textarea { font-size: 16px; }
+
+  .qty button { width: 40px; height: 40px; font-size: 1.15rem; }
+  .qty span { min-width: 32px; }
+  .link-danger { display: inline-block; padding: .55rem .2rem; font-size: .8rem; }
+  .modal__close { width: 44px; height: 44px; }
+  .modal__thumbs img { width: 60px; height: 60px; }
+  .card .btn, .btn--sm { min-height: 42px; }
+  .auth-tab { min-height: 44px; }
+
+  .footer ul { gap: 0; }
+  .footer ul a { display: inline-block; padding: .55rem 0; }
 }

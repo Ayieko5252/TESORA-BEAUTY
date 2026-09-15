@@ -73,6 +73,7 @@
       <button id="logout">Sign out</button>
     </div>
   </aside>
+  <div class="side-backdrop" id="sideBackdrop" hidden></div>
 
   <main class="main">
     <div class="mobile-bar">
@@ -146,10 +147,10 @@
           <div class="right"><span id="prodCount" style="font-size:.82rem;color:var(--muted)"></span></div>
         </div>
         <div class="table-wrap">
-          <table>
+          <table class="rt">
             <thead>
               <tr>
-                <th>Product</th><th>Category</th><th class="t-right">Price</th>
+                <th>Product</th><th class="col-cat">Category</th><th class="t-right">Price</th>
                 <th class="t-center">Discount</th><th class="t-right">Sells at</th>
                 <th class="t-center">Stock</th><th class="t-center">Status</th><th class="t-right">Actions</th>
               </tr>
@@ -189,7 +190,7 @@
           <div class="right"><span style="font-size:.82rem;color:var(--muted)">Changes save instantly</span></div>
         </div>
         <div class="table-wrap">
-          <table>
+          <table class="rt">
             <thead>
               <tr>
                 <th>Product</th><th>SKU</th><th class="t-center">Status</th>
@@ -225,7 +226,7 @@
       <div class="card">
         <div class="card__head"><h2>Order list</h2></div>
         <div class="table-wrap">
-          <table>
+          <table class="rt">
             <thead>
               <tr><th>Order</th><th>Customer</th><th>Items</th><th class="t-right">Total</th><th class="t-center">Status</th><th class="t-right">Actions</th></tr>
             </thead>

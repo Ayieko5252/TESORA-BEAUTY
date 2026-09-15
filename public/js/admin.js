@@ -225,18 +225,18 @@
     $('#prodEmpty').hidden = list.length > 0;
     $('#prodRows').innerHTML = list.map((p) => `
       <tr>
-        <td><div class="prod-cell prod-cell--edit" data-edit="${p.id}" title="Click to edit ${esc(p.name)}">
+        <td class="rt-head"><div class="prod-cell prod-cell--edit" data-edit="${p.id}" title="Click to edit ${esc(p.name)}">
           ${thumb(p)}
-          <div><b>${esc(p.name)}</b><small>${esc(p.brand || p.sku)}</small></div>
+          <div><b>${esc(p.name)}</b><small><span class="cat-inline">${esc(p.category)} · </span>${esc(p.brand || p.sku)}</small></div>
           <svg class="prod-cell__pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
         </div></td>
-        <td>${esc(p.category)}</td>
-        <td class="t-right">${money(p.price)}</td>
-        <td class="t-center">${p.discount > 0 ? `<span class="pill pill--sale">-${p.discount}%</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-        <td class="t-right"><b>${money(p.salePrice)}</b></td>
-        <td class="t-center">${stockPill(p)}</td>
-        <td class="t-center">${p.active ? '<span class="pill pill--ok">Live</span>' : '<span class="pill pill--muted">Hidden</span>'}</td>
-        <td class="t-right" style="white-space:nowrap">
+        <td class="col-cat" data-label="Category">${esc(p.category)}</td>
+        <td class="t-right" data-label="Price">${money(p.price)}</td>
+        <td class="t-center" data-label="Discount">${p.discount > 0 ? `<span class="pill pill--sale">-${p.discount}%</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+        <td class="t-right" data-label="Sells at"><b>${money(p.salePrice)}</b></td>
+        <td class="t-center" data-label="Stock">${stockPill(p)}</td>
+        <td class="t-center" data-label="Status">${p.active ? '<span class="pill pill--ok">Live</span>' : '<span class="pill pill--muted">Hidden</span>'}</td>
+        <td class="t-right rt-actions">
           <button class="btn btn--light btn--sm" data-edit="${p.id}">Edit</button>
           <button class="btn btn--light btn--sm" data-toggle="${p.id}">${p.active ? 'Hide' : 'Publish'}</button>
           <button class="btn btn--danger btn--sm" data-delete="${p.id}">Delete</button>
@@ -265,27 +265,27 @@
     $('#invEmpty').hidden = list.length > 0;
     $('#invRows').innerHTML = list.map((p) => `
       <tr>
-        <td><div class="prod-cell prod-cell--edit" data-edit="${p.id}" title="Click to edit ${esc(p.name)}">
+        <td class="rt-head"><div class="prod-cell prod-cell--edit" data-edit="${p.id}" title="Click to edit ${esc(p.name)}">
           ${thumb(p)}
           <div><b>${esc(p.name)}</b><small>${esc(p.category)}</small></div>
           <svg class="prod-cell__pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
         </div></td>
-        <td><small style="color:var(--muted)">${esc(p.sku)}</small></td>
-        <td class="t-center">${stockPill(p)}</td>
-        <td class="t-center">
+        <td data-label="SKU"><small style="color:var(--muted)">${esc(p.sku)}</small></td>
+        <td class="t-center" data-label="Status">${stockPill(p)}</td>
+        <td class="t-center" data-label="In stock">
           <div class="stock-edit">
-            <button data-stock-dec="${p.id}" aria-label="Decrease">−</button>
-            <input type="number" min="0" value="${p.stock}" data-stock-set="${p.id}">
-            <button data-stock-inc="${p.id}" aria-label="Increase">+</button>
+            <button data-stock-dec="${p.id}" aria-label="Decrease stock of ${esc(p.name)}">−</button>
+            <input type="number" inputmode="numeric" min="0" value="${p.stock}" data-stock-set="${p.id}" aria-label="Stock of ${esc(p.name)}">
+            <button data-stock-inc="${p.id}" aria-label="Increase stock of ${esc(p.name)}">+</button>
           </div>
         </td>
-        <td class="t-center">
-          <input class="cost-edit${p.costPrice ? '' : ' cost-edit--empty'}" type="number" min="0" step="1"
+        <td class="t-center" data-label="Buying price">
+          <input class="cost-edit${p.costPrice ? '' : ' cost-edit--empty'}" type="number" inputmode="numeric" min="0" step="1"
                  value="${p.costPrice || ''}" placeholder="—" title="What you paid for one unit"
-                 data-cost-set="${p.id}">
+                 aria-label="Buying price of ${esc(p.name)}" data-cost-set="${p.id}">
         </td>
-        <td class="t-right">${money(p.salePrice * p.stock)}</td>
-        <td class="t-right" style="white-space:nowrap">
+        <td class="t-right" data-label="Stock value">${money(p.salePrice * p.stock)}</td>
+        <td class="t-right rt-actions">
           <button class="btn btn--light btn--sm" data-restock="${p.id}">+10</button>
           <button class="btn btn--light btn--sm" data-restock50="${p.id}">+50</button>
         </td>
@@ -299,15 +299,15 @@
     $('#orderEmpty').hidden = list.length > 0;
     $('#orderRows').innerHTML = list.map((o) => `
       <tr>
-        <td><b>${esc(o.code)}</b><br><small style="color:var(--muted)">${dateFmt(o.createdAt)}</small></td>
-        <td>${esc(o.customer.name)}<br><small style="color:var(--muted)">${esc(o.customer.phone)}</small></td>
-        <td>${o.items.length} item${o.items.length === 1 ? '' : 's'}<br>
+        <td class="rt-head"><b>${esc(o.code)}</b><br><small style="color:var(--muted)">${dateFmt(o.createdAt)}</small></td>
+        <td data-label="Customer">${esc(o.customer.name)}<br><small style="color:var(--muted)">${esc(o.customer.phone)}</small></td>
+        <td data-label="Items">${o.items.length} item${o.items.length === 1 ? '' : 's'}<br>
             <small style="color:var(--muted)">${esc(o.items.map((i) => `${i.name} x${i.qty}`).join(', ').slice(0, 46))}${o.items.map((i) => i.name).join(', ').length > 46 ? '…' : ''}</small></td>
-        <td class="t-right"><b>${money(o.total)}</b><br>${paymentPill(o)}</td>
-        <td class="t-center">${statusPill(o.status)}</td>
-        <td class="t-right" style="white-space:nowrap">
+        <td class="t-right" data-label="Total"><b>${money(o.total)}</b><br>${paymentPill(o)}</td>
+        <td class="t-center" data-label="Status">${statusPill(o.status)}</td>
+        <td class="t-right rt-actions">
           <button class="btn btn--light btn--sm" data-order="${o.id}">View</button>
-          <select class="input" data-order-status="${o.id}" style="width:auto;display:inline-block;padding:.35rem .6rem;font-size:.76rem">
+          <select class="input status-select" data-order-status="${o.id}" aria-label="Change status of ${esc(o.code)}">
             ${['pending', 'confirmed', 'delivered', 'cancelled'].map((s) =>
               `<option value="${s}"${o.status === s ? ' selected' : ''}>${s[0].toUpperCase()}${s.slice(1)}</option>`).join('')}
           </select>
@@ -880,6 +880,8 @@
     $$('.panel').forEach((p) => p.classList.toggle('is-active', p.id === `panel-${tab}`));
     $$('.side__link').forEach((b) => b.classList.toggle('is-active', b.dataset.tab === tab));
     $('#side').classList.remove('is-open');
+    $('#sideBackdrop').hidden = true;
+    $('#menuToggle').setAttribute('aria-expanded', 'false');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -887,7 +889,18 @@
   function wire() {
     $('#loginForm').addEventListener('submit', signIn);
     $('#logout').addEventListener('click', () => signOut());
-    $('#menuToggle').addEventListener('click', () => $('#side').classList.toggle('is-open'));
+    // The slide-out menu on phones: a backdrop behind it, so a tap anywhere
+    // else (or Escape) closes it instead of forcing a tab choice.
+    const setMenu = (open) => {
+      $('#side').classList.toggle('is-open', open);
+      $('#sideBackdrop').hidden = !open;
+      $('#menuToggle').setAttribute('aria-expanded', String(open));
+    };
+    $('#menuToggle').addEventListener('click', () => setMenu(!$('#side').classList.contains('is-open')));
+    $('#sideBackdrop').addEventListener('click', () => setMenu(false));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && $('#side').classList.contains('is-open')) setMenu(false);
+    });
 
     ['#prodSearch', '#prodCategory', '#prodStatus'].forEach((sel) =>
       $(sel).addEventListener('input', renderProducts));

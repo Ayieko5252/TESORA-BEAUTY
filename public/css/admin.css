@@ -457,3 +457,138 @@ tbody tr:last-child td { border-bottom: 0; }
 .cost-edit:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
 /* an empty one is worth noticing — it is what makes profit incomplete */
 .cost-edit--empty { border-style: dashed; border-color: var(--warn); background: var(--warn-bg); }
+
+/* ======================================================================
+   Phones, tablets and Windows
+   Layout follows screen width; tap-target size follows the pointer, so a
+   Windows laptop with a mouse keeps the compact panel while a phone — or a
+   touchscreen laptop — gets buttons a thumb can actually hit.
+   ====================================================================== */
+
+/* Keyboard focus, for anyone tabbing through the panel on Windows. */
+button:focus-visible, a:focus-visible, .prod-cell--edit:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px;
+}
+
+/* On a phone 100vh includes the strip behind the browser's own toolbar, which
+   hid "Sign out" at the foot of the menu and the Save button in the product
+   editor. dvh is the height that is actually visible; vh stays as a fallback. */
+.side { height: 100vh; height: 100dvh; }
+.modal__panel { max-height: 90vh; max-height: 90dvh; }
+
+.status-select { width: auto; display: inline-block; padding: .35rem .6rem; font-size: .76rem; }
+
+/* Grid children default to growing to fit their content, so a report table's
+   no-wrap prices could push a card past a small phone's edge. Let them shrink. */
+.grid-2 > *, .grid-3 > *, .cols > * { min-width: 0; }
+
+/* ---- the menu's backdrop (phones and small tablets only) ---- */
+.side-backdrop { position: fixed; inset: 0; z-index: 85; background: rgba(18, 16, 15, .45); }
+@media (min-width: 861px) { .side-backdrop { display: none !important; } }
+
+@media (max-width: 860px) {
+  .side { overflow-y: auto; }
+  /* keep the menu button in reach while scrolling a long product list */
+  .mobile-bar {
+    position: sticky; top: 0; z-index: 30; background: var(--ivory);
+    margin: -1rem -1.1rem 1rem; padding: .7rem 1.1rem;
+  }
+}
+
+/* ---- tables that fit a normal Windows laptop (1280–1440 wide) ---- */
+@media (max-width: 1440px) {
+  .rt .col-cat { display: none; }          /* category moves under the name */
+  .rt th, .rt td { padding-left: .75rem; padding-right: .75rem; }
+  .rt .prod-cell { min-width: 170px; }
+}
+@media (min-width: 1441px) { .cat-inline { display: none; } }
+
+/* ---- tables become cards: tablets, phones, narrow Windows windows ---- */
+@media (max-width: 1180px) {
+  .table-wrap { overflow: visible; }
+  .rt { display: block; font-size: .9rem; }
+  .rt thead { display: none; }
+  .rt tbody {
+    display: grid; gap: .8rem; padding: .9rem;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  }
+  .rt tr {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .1rem 1rem; align-content: start;
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: .8rem .95rem; background: var(--white);
+  }
+  .rt tbody tr:hover { background: var(--white); }
+  .rt td {
+    display: flex; flex-direction: column; align-items: flex-start; gap: .15rem;
+    padding: .4rem 0; border: 0; text-align: left; min-width: 0;
+  }
+  .rt td::before {
+    content: attr(data-label);
+    font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  }
+  .rt td.rt-head, .rt td.rt-actions { grid-column: 1 / -1; }
+  .rt td.rt-head::before, .rt td.rt-actions::before { content: none; }
+  .rt td.rt-head { padding: 0 0 .65rem; margin-bottom: .2rem; border-bottom: 1px solid var(--line); }
+  .rt td.rt-actions {
+    flex-direction: row; flex-wrap: wrap; gap: .5rem;
+    margin-top: .35rem; padding-top: .75rem; border-top: 1px solid var(--line);
+  }
+  .rt td.rt-actions > * { flex: 1 1 auto; }
+  .rt .prod-cell { min-width: 0; width: 100%; }
+  .rt .prod-cell__pen { opacity: .55; margin-left: auto; }
+  .rt .col-cat { display: none; }
+
+  .filters { width: 100%; }
+  .filters .input, .filters select { flex: 1 1 150px; min-width: 0; }
+}
+
+/* ---- phones ---- */
+@media (max-width: 640px) {
+  .main { padding: 1rem .9rem 3rem; }
+  .mobile-bar { margin: -1rem -.9rem 1rem; padding: .7rem .9rem; }
+  .topbar { margin-bottom: 1.1rem; }
+  .topbar h1 { font-size: 1.4rem; }
+  .topbar__actions > * { flex: 1 1 auto; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .stat { padding: .85rem .9rem; }
+  .stat b { font-size: 1.3rem; word-break: break-word; }
+  .card__head { padding: .85rem .9rem; }
+  .card__body { padding: .9rem; }
+  .rt tbody { padding: .6rem; grid-template-columns: 1fr; }
+  .dl-grid { grid-template-columns: 1fr; }
+  .card__body table:not(.rt) td, .card__body table:not(.rt) th { padding: .55rem .4rem; }
+  .card__body table:not(.rt) td:first-child { padding-left: 0; }
+  .card__body table:not(.rt) td:last-child { padding-right: 0; }
+  .dl__actions > * { flex: 1 1 auto; }
+
+  /* the product editor becomes a full-height sheet instead of a floating box */
+  .modal { padding: 0; place-items: end stretch; }
+  .modal__panel {
+    width: 100%; max-height: 100vh; max-height: 100dvh;
+    border-radius: 18px 18px 0 0;
+  }
+  .modal__head { border-radius: 18px 18px 0 0; padding: .9rem 1rem; }
+  .modal__body { padding: 1rem; }
+  .modal__foot { border-radius: 0; padding: .8rem 1rem; padding-bottom: max(.8rem, env(safe-area-inset-bottom)); }
+  .modal__foot > * { flex: 1 1 auto; }
+
+  .toast { left: .9rem; right: .9rem; bottom: .9rem; text-align: center; }
+}
+
+/* ---- touch screens: phones, tablets and touchscreen laptops ---- */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .btn--sm { min-height: 40px; padding: .5rem .95rem; }
+  .btn--icon { width: 44px; height: 44px; }
+  .side__link, .side__foot a, .side__foot button { min-height: 46px; }
+  .stock-edit { gap: .4rem; }
+  .stock-edit button { width: 40px; height: 40px; font-size: 1.2rem; }
+  .stock-edit input { width: 64px; min-height: 40px; }
+  .cost-edit { min-height: 40px; }
+  .preview button { width: 30px; height: 30px; }
+
+  /* iOS zooms the entire page into any field under 16px when tapped, and
+     doesn't zoom back out. Keeping fields at 16px stops that. */
+  .input, .field input, .field select, .field textarea,
+  .stock-edit input, .cost-edit, .status-select { font-size: 16px; }
+}
