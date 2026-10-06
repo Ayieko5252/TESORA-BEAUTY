@@ -785,3 +785,29 @@ button:focus-visible, a:focus-visible, .select:focus-visible {
   .card__media { aspect-ratio: 5 / 4; }
   .grid { gap: .7rem; }
 }
+
+/* Four products per row on a phone.
+   At 390px that is about 85px a card, so everything inside has to shrink with
+   it: a square picture, smaller type, a tighter body and a compact button.
+   The category and brand lines are dropped at this size because they are the
+   least useful of the labels and the first to wrap badly. */
+@media (max-width: 720px) {
+  .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+  .card__media { aspect-ratio: 1 / 1; }
+  .card__body { padding: .5rem .45rem .6rem; gap: .25rem; }
+  .card__cat, .card__brand { display: none; }
+  .card__title {
+    font-size: .76rem; line-height: 1.25;
+    /* a long name would otherwise wrap to four lines in an 85px column */
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card__price { font-size: .82rem; }
+  .card__price .was, .card__save { font-size: .66rem; }
+  .stock { font-size: .64rem; gap: .25rem; }
+  .stock::before { width: 5px; height: 5px; }
+  .card .btn {
+    padding: .5rem .3rem; font-size: .6rem; letter-spacing: .06em; min-height: 36px;
+  }
+  .badge, .card__badges span { font-size: .55rem; padding: .18rem .35rem; }
+}
