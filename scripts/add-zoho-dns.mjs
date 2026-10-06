@@ -72,7 +72,7 @@ const wanted = [
   // Says Zoho is allowed to send as this domain, so replies are not spam.
   { type: 'TXT', hostname: DOMAIN, value: 'v=spf1 include:zoho.com ~all', ttl: 3600 },
   // p=none only watches; it never causes a message to be rejected.
-  { type: 'TXT', hostname: `_dmarc.${DOMAIN}`, value: `v=DMARC1; p=none; rua=mailto:care@${DOMAIN}`, ttl: 3600 }
+  { type: 'TXT', hostname: `_dmarc.${DOMAIN}`, value: `v=DMARC1; p=none; rua=mailto:customer.care@${DOMAIN}`, ttl: 3600 }
 ];
 
 if (verifyValue) {

@@ -25,7 +25,7 @@ const PUBLIC_RESOLVERS = ['8.8.8.8', '1.1.1.1'];
 dns.setServers(PUBLIC_RESOLVERS);
 setServers(PUBLIC_RESOLVERS);
 
-const ADDRESS = process.argv[2] || 'care@tessorabeauty.co.ke';
+const ADDRESS = process.argv[2] || 'customer.care@tessorabeauty.co.ke';
 const DOMAIN = ADDRESS.split('@')[1];
 
 const say = (ok, label, detail = '') =>
