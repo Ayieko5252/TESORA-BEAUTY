@@ -6,16 +6,16 @@ running on Northflank: always on, never sleeps, and your products stay put.
 About 20 minutes. You need a GitHub account and a Northflank account.
 
 **Cost:** the shop itself is free. The storage for your products and photos is
-Northflank's cheapest add-on — 4GB minimum at $0.15/GB, so roughly **$0.60 a
+Northflank's cheapest add-on, 4GB minimum at $0.15/GB, so roughly **$0.60 a
 month** (about 80 KES). Northflank asks for a card to verify you, and bills at
 the end of the cycle.
 
 ---
 
-## Step 0 — change the admin password
+## Step 0, change the admin password
 
 Your shop is about to be reachable by anyone with the link. `1234` is not safe on
-the open internet — whoever guesses it can change your prices, stock and orders.
+the open internet, whoever guesses it can change your prices, stock and orders.
 
 1. `npm start`, open http://localhost:3000/admin, sign in with `1234`
 2. **Settings → Admin password** → set something long
@@ -25,14 +25,14 @@ Do this first. It is the one step you cannot undo if someone gets in.
 
 ---
 
-## Step 1 — put the code on GitHub
+## Step 1, put the code on GitHub
 
 The code is already committed on your computer. It just needs somewhere to live.
 
 1. Go to https://github.com/new
 2. Repository name: `tessora-beauty`
 3. Choose **Private**
-4. Do **not** tick "Add a README" — the repo must start empty
+4. Do **not** tick "Add a README", the repo must start empty
 5. Click **Create repository**
 
 Then run these, replacing `YOUR-USERNAME`:
@@ -49,9 +49,9 @@ It asks you to sign in to GitHub the first time.
 
 ---
 
-## Step 2 — create the Northflank project
+## Step 2, create the Northflank project
 
-1. Sign up at https://northflank.com (sign up **with GitHub** — it saves
+1. Sign up at https://northflank.com (sign up **with GitHub**, it saves
    connecting the accounts later)
 2. Add your card when asked. This verifies you; nothing is charged now.
 3. Click **Create new** → **Project**. Name it `tessora`, pick the region
@@ -59,14 +59,14 @@ It asks you to sign in to GitHub the first time.
 
 ---
 
-## Step 3 — create the storage volume *first*
+## Step 3, create the storage volume *first*
 
-Do this before creating the service — a volume is easiest to attach at the moment
+Do this before creating the service, a volume is easiest to attach at the moment
 the service is created.
 
 1. Inside your project, go to **Volumes** → **Create volume**
 2. Name: `tessora-data`
-3. Size: **4 GB** (their minimum — far more than this shop will ever need)
+3. Size: **4 GB** (their minimum, far more than this shop will ever need)
 4. Create it
 
 This is the bit that costs about $0.60/month, and it is what stops your products
@@ -74,17 +74,17 @@ and photos disappearing.
 
 ---
 
-## Step 4 — create the service
+## Step 4, create the service
 
 1. **Create new** → **Service** → **Combined service** (it builds and runs in one)
 2. Name: `tessora-beauty`
 3. Repository: pick your `tessora-beauty` repo, branch `main`
-4. Build: choose **Dockerfile**, path `/Dockerfile` — the repo already has one
+4. Build: choose **Dockerfile**, path `/Dockerfile`, the repo already has one
 5. **Networking / Ports:** port **8080**, protocol **HTTP**, and turn on
    **Publicly accessible**
 6. **Volumes:** attach `tessora-data`, mount path **`/data`**
 
-   This must be exactly `/data` — it is where the shop writes your products,
+   This must be exactly `/data`, it is where the shop writes your products,
    orders and uploaded photos.
 7. Resources: the free **nano** plan is plenty
 8. Click **Create service**
@@ -96,12 +96,12 @@ Your admin panel is that same address with `/admin` on the end.
 
 ---
 
-## Step 5 — set your real WhatsApp number
+## Step 5, set your real WhatsApp number
 
 The order buttons currently point at a placeholder, so orders would go nowhere.
 
 On your live site: **/admin → Settings → WhatsApp number**. Full country code, no
-`+` and no spaces — for example `254712345678`. Save.
+`+` and no spaces, for example `254712345678`. Save.
 
 Set your Instagram and TikTok handles while you are there.
 
@@ -113,7 +113,7 @@ The very first time the shop boots on an empty volume, it loads the 32 sample
 products so the site doesn't look broken. Delete them from **Admin → Products**
 once you've added your own.
 
-After that it never seeds again — every restart and every redeploy keeps whatever
+After that it never seeds again, every restart and every redeploy keeps whatever
 is on the volume. Your products, photos and orders are safe.
 
 ---
@@ -130,7 +130,7 @@ Northflank sees the push and rebuilds automatically.
 
 You do **not** need this for everyday work. Adding products, changing prices,
 adjusting stock and handling orders all happen in the admin panel on the live
-site — no code, no deploying.
+site, no code, no deploying.
 
 ---
 

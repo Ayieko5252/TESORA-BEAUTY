@@ -38,7 +38,7 @@ const MAX_ATTEMPTS = 8;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
 // Strong consistency matters here: with the default eventual reads, a request
-// right after a change can still see the old shop — and the seeding below would
+// right after a change can still see the old shop, and the seeding below would
 // then overwrite real products with the starter set.
 const data = () => getStore({ name: 'tessora-shop', consistency: 'strong' });
 const media = () => getStore('tessora-media');
@@ -64,7 +64,7 @@ const SETTINGS_ADDED = {
   mpesaConsumerKey: '',
   mpesaConsumerSecret: '',
   mpesaCallbackUrl: '',
-  // Sign in with Google. The client id is public by design — it identifies the
+  // Sign in with Google. The client id is public by design, it identifies the
   // shop to Google and is safe in the browser. There is no client secret: the
   // browser hands us a signed token and the server checks it with Google.
   googleClientId: '',
@@ -128,7 +128,7 @@ const persist = (db) => data().setJSON('db', db);
  * The key every session token is signed with.
  *
  * This used to fall back to a fixed string in the source. Once the code was
- * published, that string was public — and anyone holding it could mint a valid
+ * published, that string was public, and anyone holding it could mint a valid
  * admin token and walk into the panel without the password. So: use
  * TOKEN_SECRET if it is set, otherwise generate a strong random key once and
  * keep it in the shop's own database, where it is never published.
@@ -145,8 +145,7 @@ function sessionSecret(db) {
 /**
  * A short fingerprint of the current admin password, carried inside the token.
  *
- * It means changing the password ends every session that was already open —
- * otherwise someone signed in before the change would simply stay signed in,
+ * It means changing the password ends every session that was already open, * otherwise someone signed in before the change would simply stay signed in,
  * which defeats the point of changing it.
  */
 const passwordStamp = (db) => crypto
@@ -265,7 +264,7 @@ function publicSettings(s) {
   };
 }
 
-/** Settings the admin panel may see — secrets shown only as "is it set?". */
+/** Settings the admin panel may see, secrets shown only as "is it set?". */
 function adminSettings(s) {
   const { adminPassword, tokenSecret, mpesaConsumerSecret, mpesaPasskey, emailApiKey, ...rest } = s;
   return {
@@ -313,7 +312,7 @@ function normalize(input, existing = {}) {
     brand: str(input.brand ?? existing.brand, 60),
     description: str(input.description ?? existing.description, 1500),
     price,
-    // What you paid for it. Optional — but without it the shop cannot work out
+    // What you paid for it. Optional, but without it the shop cannot work out
     // profit, so the financial statements say so rather than guessing.
     costPrice: Math.max(0, Math.round(num(input.costPrice ?? existing.costPrice, 0))),
     discount: clamp(Math.round(num(input.discount ?? existing.discount, 0)), 0, 95),
@@ -347,66 +346,25 @@ async function notify(db, { when, subject, body }) {
   await mailer.sendEmail(db.settings, { subject, html: body }).catch(() => {});
 }
 
-/* ------------------------------------------- new-order email, via Netlify */
+/* ------------------------------------------------- order email fallback */
 
 /**
- * Email the store about a new order without any email service.
+ * Called when a new order is saved and no email could be sent.
  *
- * Netlify emails every submission of the hidden "order-alert" form
- * (public/order-alert.html) to the store's inbox, so posting the order into
- * that form is what sends the email. If a Resend key has been added the Resend
- * alert already covers it, and this steps aside so nobody gets two emails.
- *
- * It never fails the order: the order is saved before this runs, and if the
- * form post doesn't go through that is written to the activity log instead.
+ * This used to post the order into a hidden Netlify form, because Netlify can
+ * email form submissions. That turned out to be inert: the shop is on the free
+ * plan, where Netlify accepts a submission and stores nothing, so no email was
+ * ever sent and nothing said so. Rather than keep a path that quietly does
+ * nothing, a missing email route is recorded in the activity log where the shop
+ * owner can see it. The order itself is saved before this runs and is never
+ * affected.
  */
-async function alertNewOrder(db, order, origin) {
-  if (mailer.isConfigured(db.settings)) return;
-
-  const currency = db.settings.currency || 'KSh';
-  const m = (n) => `${currency} ${Math.round(Number(n) || 0).toLocaleString('en-KE')}`;
-  const d = order.delivery || {};
-
-  const fields = {
-    'form-name': 'order-alert',
-    'bot-field': '',
-    Order: order.code,
-    Total: m(order.total),
-    Customer: order.customer.name,
-    Phone: order.customer.phone,
-    Email: order.customer.email || '—',
-    Deliver_to: order.customer.location || '—',
-    Items: order.items.map((i) => `${i.qty} × ${i.name} — ${m(i.price * i.qty)}`).join('\n'),
-    Delivery: [
-      order.deliveryFee === 0 ? 'Free' : m(order.deliveryFee),
-      d.distanceKm !== null && d.distanceKm !== undefined ? `${d.distanceKm} km` : '',
-      d.label ? `arrives ${d.label}` : ''
-    ].filter(Boolean).join(' · '),
-    Payment: order.payment?.status === 'paid' ? 'Paid by M-Pesa' : 'Awaiting M-Pesa payment',
-    Notes: order.customer.notes || '—',
-    Placed: new Date(order.createdAt).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' }),
-    // The admin panel rather than a receipt link: a receipt link carries the
-    // order's payment token, which shouldn't travel around in email.
-    Manage: `${origin}/admin`
-  };
-
-  try {
-    const res = await fetch(`${origin}/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(fields).toString(),
-      redirect: 'manual',
-      signal: AbortSignal.timeout(6000)
-    });
-    // Netlify answers an accepted submission with a redirect or a 200.
-    if (res.status >= 400) throw new Error(`Netlify answered ${res.status}`);
-  } catch (err) {
-    log.record(db, {
-      type: 'order.alert_failed', actor: 'system', target: order.code, targetId: order.id,
-      summary: `The new-order email could not be sent (${err.message || err}). The order itself is saved.`
-    });
-    await persist(db);
-  }
+function noteMissingEmailRoute(db, order) {
+  log.record(db, {
+    type: "order.alert_failed", actor: "system", target: order.code, targetId: order.id,
+    summary: "Order saved, but no new order email was sent because no email service is set up. "
+      + "Add a Resend API key in Settings, Reports."
+  });
 }
 
 /* ----------------------------------------------------------------- routes */
@@ -455,7 +413,7 @@ export default async function handler(req) {
     const problem = passwordProblem(body.password);
     if (problem) return json(400, { error: problem });
     if (db.customers.some((c) => c.email === email)) {
-      return json(409, { error: 'You already have an account with that email — please sign in.' });
+      return json(409, { error: 'You already have an account with that email, please sign in.' });
     }
 
     const customer = {
@@ -491,7 +449,7 @@ export default async function handler(req) {
 
     // The browser hands us a token signed by Google. Ask Google whether it is
     // genuine rather than trusting what arrived, and make sure it was issued
-    // for THIS shop — a token minted for another site must not open an account
+    // for THIS shop, a token minted for another site must not open an account
     // here.
     let info;
     try {
@@ -515,7 +473,7 @@ export default async function handler(req) {
 
     let customer = db.customers.find((c) => c.email === email);
     if (customer) {
-      // An account already exists for this address — link it rather than
+      // An account already exists for this address, link it rather than
       // making a second one, so their order history stays in one place.
       if (!customer.googleId) customer.googleId = info.sub;
     } else {
@@ -657,7 +615,7 @@ export default async function handler(req) {
     const dest = customer.lat && customer.lng ? { lat: customer.lat, lng: customer.lng } : null;
     const delivery = await quoteDelivery(settings, subtotal, dest);
 
-    // The shop is paid up front by M-Pesa — there is no cash on delivery.
+    // The shop is paid up front by M-Pesa, there is no cash on delivery.
     // If M-Pesa is not configured yet the order is still taken and recorded as
     // awaiting payment, so trading never stops; it is simply not marked paid.
     const mpesaLive = Boolean(settings.mpesaEnabled) && mpesaConfigured(settings);
@@ -692,19 +650,22 @@ export default async function handler(req) {
 
     log.record(db, {
       type: 'order.placed', actor: 'customer', target: order.code, targetId: order.id,
-      summary: `${customer.name} ordered ${items.length} item${items.length === 1 ? '' : 's'} — ${order.total}`,
+      summary: `${customer.name} ordered ${items.length} item${items.length === 1 ? '' : 's'}, ${order.total}`,
       meta: { total: order.total, distanceKm: delivery.distanceKm }
     });
     await persist(db);
 
     await notify(db, {
       when: settings.notifyNewOrder,
-      subject: `New order ${order.code} — ${settings.currency || 'KSh'} ${order.total}`,
+      subject: `New order ${order.code}, ${settings.currency || 'KSh'} ${order.total}`,
       body: mailer.orderHtml(order, settings, 'NEW ORDER')
     });
     // Awaited, not fired off: Netlify can freeze a function as soon as it has
     // responded, which would silently drop the email.
-    if (settings.notifyNewOrder !== false) await alertNewOrder(db, order, url.origin);
+    if (settings.notifyNewOrder !== false && !mailer.isConfigured(settings)) {
+      noteMissingEmailRoute(db, order);
+      await persist(db);
+    }
 
     return json(201, { order });
   }
@@ -730,7 +691,7 @@ export default async function handler(req) {
     }
     if (!settings.mpesaEnabled || !mpesaConfigured(settings)) {
       return json(400, {
-        error: 'M-Pesa checkout is not switched on yet. Your order is saved — '
+        error: 'M-Pesa checkout is not switched on yet. Your order is saved, '
           + 'send it on WhatsApp and we will confirm payment with you.'
       });
     }
@@ -796,8 +757,8 @@ export default async function handler(req) {
       const order = db.orders.find((o) => o.payment?.checkoutRequestId === cb.checkoutRequestId);
       if (order) {
         if (cb.resultCode === '0') {
-          // Anyone can post to this address — Safaricom has to be able to reach
-          // it — and the checkout id is handed to the shopper when the prompt is
+          // Anyone can post to this address, Safaricom has to be able to reach
+          // it, and the checkout id is handed to the shopper when the prompt is
           // sent. So a "paid" callback is treated as a claim, not as proof:
           // confirm it with Safaricom, and check the amount is the full total,
           // before any order is marked paid.
@@ -814,8 +775,8 @@ export default async function handler(req) {
             log.record(db, {
               type: 'payment.failed', actor: 'system', target: order.code, targetId: order.id,
               summary: !amountOk
-                ? `A payment callback claimed ${cb.amount} for an order of ${order.total} — rejected`
-                : 'A payment callback could not be confirmed with Safaricom — rejected'
+                ? `A payment callback claimed ${cb.amount} for an order of ${order.total}, rejected`
+                : 'A payment callback could not be confirmed with Safaricom, rejected'
             });
             await persist(db);
             // Still acknowledged below, so Safaricom stops retrying.
@@ -840,7 +801,7 @@ export default async function handler(req) {
         await persist(db);
         await notify(db, {
           when: settings.notifyPayment,
-          subject: `${cb.resultCode === '0' ? 'Payment received' : 'Payment failed'} — ${order.code}`,
+          subject: `${cb.resultCode === '0' ? 'Payment received' : 'Payment failed'}, ${order.code}`,
           body: mailer.orderHtml(order, settings, cb.resultCode === '0' ? 'PAYMENT RECEIVED' : 'PAYMENT FAILED')
         });
       }
@@ -911,7 +872,7 @@ export default async function handler(req) {
   if (seg[0] === 'admin' && seg[1] === 'activity' && method === 'GET') {
     const group = url.searchParams.get('group') || '';
     const entries = (db.activity || []).filter((a) => !group || a.group === group);
-    // Note: a missing ?limit reads as null, and Number(null) is 0 — so default
+    // Note: a missing ?limit reads as null, and Number(null) is 0, so default
     // it explicitly rather than through num(), which would slice to nothing.
     const limit = Number(url.searchParams.get('limit')) || 200;
     return json(200, {
@@ -939,6 +900,37 @@ export default async function handler(req) {
     return json(200, { report: log.buildReport(db, period), emailReady: mailer.isConfigured(settings) });
   }
 
+  /* ---- send one test email, to prove the setup works ---- */
+  if (seg[0] === 'admin' && seg[1] === 'email' && seg[2] === 'test' && method === 'POST') {
+    if (!mailer.isConfigured(settings)) {
+      return json(400, { error: 'Add a Resend API key, and an address to send to, in Settings, Reports first.' });
+    }
+    const to = mailer.reportRecipient(settings);
+    const result = await mailer.sendEmail(settings, {
+      subject: `${settings.storeName || 'Tessora Beauty'}: email is working`,
+      html: mailer.activityHtml({
+        type: 'settings.updated',
+        label: 'Email test',
+        at: new Date().toISOString(),
+        actor: 'admin',
+        target: 'Order emails are set up',
+        summary: 'This is a test. New orders will arrive at this address from now on.',
+        changes: []
+      }, settings),
+      text: 'This is a test from your shop. Order emails are working.'
+    });
+    if (!result.sent) {
+      // Say exactly why, so a wrong key or an unverified sender is obvious.
+      const why = {
+        'no-api-key': 'No Resend API key is saved.',
+        'no-recipient': 'No address to send to is saved.',
+        network: 'Could not reach Resend.'
+      }[result.reason] || `Resend refused it (${result.reason}).`;
+      return json(502, { error: `${why} ${result.detail || ''}`.trim() });
+    }
+    return json(200, { sent: true, to });
+  }
+
   if (seg[0] === 'admin' && seg[1] === 'report' && seg[2] === 'send' && method === 'POST') {
     const period = ['today', '7d', '30d'].includes(str(body.period, 8)) ? str(body.period, 8) : 'today';
     const report = log.buildReport(db, period);
@@ -948,7 +940,7 @@ export default async function handler(req) {
       });
     }
     const result = await mailer.sendEmail(settings, {
-      subject: `${settings.storeName || 'Tessora'} store report — ${period}`,
+      subject: `${settings.storeName || 'Tessora'} store report, ${period}`,
       html: mailer.reportHtml(report, settings)
     });
     if (!result.sent) {
@@ -1021,7 +1013,7 @@ export default async function handler(req) {
       await persist(db);
       await notify(db, {
         when: settings.notifyAdminChanges,
-        subject: `Product added — ${product.name}`,
+        subject: `Product added, ${product.name}`,
         body: mailer.activityHtml(entry, settings)
       });
       return json(201, { product: publicProduct(product) });
@@ -1050,7 +1042,7 @@ export default async function handler(req) {
       if (changes.length) {
         await notify(db, {
           when: settings.notifyAdminChanges,
-          subject: `Product edited — ${product.name}`,
+          subject: `Product edited, ${product.name}`,
           body: mailer.activityHtml(entry, settings)
         });
       }
@@ -1168,7 +1160,7 @@ export default async function handler(req) {
     if (body.mapsApiKey !== undefined) s.mapsApiKey = str(body.mapsApiKey, 120);
     if (body.googleClientId !== undefined) s.googleClientId = str(body.googleClientId, 200);
 
-    // M-Pesa — blank means "leave the saved secret alone"
+    // M-Pesa, blank means "leave the saved secret alone"
     if (body.mpesaEnabled !== undefined) s.mpesaEnabled = Boolean(body.mpesaEnabled);
     if (body.mpesaEnv !== undefined) s.mpesaEnv = ['sandbox', 'production'].includes(body.mpesaEnv) ? body.mpesaEnv : s.mpesaEnv;
     if (body.mpesaType !== undefined) s.mpesaType = ['paybill', 'till'].includes(body.mpesaType) ? body.mpesaType : s.mpesaType;
@@ -1233,7 +1225,7 @@ export default async function handler(req) {
     });
 
     // Tokens carry a fingerprint of the password, so changing it ends every
-    // session that was already open — including this one. Hand back a fresh
+    // session that was already open, including this one. Hand back a fresh
     // token so whoever made the change stays signed in, and everyone else is
     // signed out. The panel swaps it in; a client that ignores it just signs in
     // again, which is the safe outcome either way.

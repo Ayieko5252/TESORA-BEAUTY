@@ -1,4 +1,4 @@
-/* Tessora Beauty — admin dashboard logic */
+/* Tessora Beauty, admin dashboard logic */
 (() => {
   'use strict';
 
@@ -191,7 +191,7 @@
     cancelled: '<span class="pill pill--muted">Cancelled</span>'
   }[status] || `<span class="pill pill--muted">${esc(status)}</span>`);
 
-  // Every order is paid by M-Pesa — the shop does not take cash on delivery.
+  // Every order is paid by M-Pesa, the shop does not take cash on delivery.
   const paymentPill = (o) => {
     const p = o.payment || { status: 'unpaid' };
     if (p.status === 'paid') {
@@ -232,7 +232,7 @@
         </div></td>
         <td class="col-cat" data-label="Category">${esc(p.category)}</td>
         <td class="t-right" data-label="Price">${money(p.price)}</td>
-        <td class="t-center" data-label="Discount">${p.discount > 0 ? `<span class="pill pill--sale">-${p.discount}%</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+        <td class="t-center" data-label="Discount">${p.discount > 0 ? `<span class="pill pill--sale">-${p.discount}%</span>` : '<span style="color:var(--muted)"> </span>'}</td>
         <td class="t-right" data-label="Sells at"><b>${money(p.salePrice)}</b></td>
         <td class="t-center" data-label="Stock">${stockPill(p)}</td>
         <td class="t-center" data-label="Status">${p.active ? '<span class="pill pill--ok">Live</span>' : '<span class="pill pill--muted">Hidden</span>'}</td>
@@ -281,7 +281,7 @@
         </td>
         <td class="t-center" data-label="Buying price">
           <input class="cost-edit${p.costPrice ? '' : ' cost-edit--empty'}" type="number" inputmode="numeric" min="0" step="1"
-                 value="${p.costPrice || ''}" placeholder="—" title="What you paid for one unit"
+                 value="${p.costPrice || ''}" placeholder=" " title="What you paid for one unit"
                  aria-label="Buying price of ${esc(p.name)}" data-cost-set="${p.id}">
         </td>
         <td class="t-right" data-label="Stock value">${money(p.salePrice * p.stock)}</td>
@@ -409,7 +409,7 @@
     const sale = Math.round(price * (1 - discount / 100));
     el.style.display = 'block';
     el.innerHTML = discount > 0
-      ? `Customers will see <b>${money(sale)}</b> <s style="opacity:.6">${money(price)}</s> — they save ${money(price - sale)} (${discount}% off).`
+      ? `Customers will see <b>${money(sale)}</b> <s style="opacity:.6">${money(price)}</s>, they save ${money(price - sale)} (${discount}% off).`
       : `Customers will see <b>${money(price)}</b>. Add a discount % to run an offer.`;
   }
 
@@ -504,7 +504,7 @@
     $('#setFreeOver').value = s.freeDeliveryOver ?? 0;
     $('#setThreshold').value = s.lowStockThreshold ?? 5;
 
-    // reports and alerts (the API key is never returned — blank means "keep")
+    // reports and alerts (the API key is never returned, blank means "keep")
     $('#setReportEmail').value = s.reportEmail || '';
     $('#setEmailFrom').value = s.emailFrom || '';
     $('#setNotifyNewOrder').checked = Boolean(s.notifyNewOrder);
@@ -512,7 +512,7 @@
     $('#setNotifyStatus').checked = Boolean(s.notifyStatusChange);
     $('#setNotifyChanges').checked = Boolean(s.notifyAdminChanges);
     const status = $('#emailStatus');
-    status.textContent = s.emailReady ? 'Email ready' : (s.emailApiKeySet ? 'Key set — add a recipient' : 'Not configured');
+    status.textContent = s.emailReady ? 'Email ready' : (s.emailApiKeySet ? 'Key set, add a recipient' : 'Not configured');
     status.className = `tag ${s.emailReady ? 'tag--ok' : 'tag--muted'}`;
 
     // delivery-by-distance + maps
@@ -531,8 +531,8 @@
     $('#setMpesaTill').value = s.mpesaTill || '';
     $('#setMpesaKey').value = s.mpesaConsumerKey || '';
     $('#setMpesaCallback').value = s.mpesaCallbackUrl || '';
-    $('#setMpesaSecret').placeholder = s.mpesaConsumerSecretSet ? 'Saved — leave blank to keep' : 'Consumer secret';
-    $('#setMpesaPasskey').placeholder = s.mpesaPasskeySet ? 'Saved — leave blank to keep' : 'Passkey';
+    $('#setMpesaSecret').placeholder = s.mpesaConsumerSecretSet ? 'Saved, leave blank to keep' : 'Consumer secret';
+    $('#setMpesaPasskey').placeholder = s.mpesaPasskeySet ? 'Saved, leave blank to keep' : 'Passkey';
   }
 
   async function saveSettings(event) {
@@ -638,6 +638,24 @@
     }
   }
 
+  /** Prove the email setup works, and say plainly when it does not. */
+  async function sendTestEmail() {
+    const btn = $('#sendTestEmail');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    try {
+      const res = await api('/admin/email/test', { method: 'POST' });
+      $('#reportSettingsMsg').innerHTML =
+        `<div class="notice notice--ok">Test email sent to ${esc(res.to)}. Check the inbox, and the spam folder.</div>`;
+      toast('Test email sent');
+    } catch (err) {
+      $('#reportSettingsMsg').innerHTML = `<div class="notice notice--error">${esc(err.message)}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send me a test email';
+    }
+  }
+
   const GROUP_TONE = {
     products: 'blush', stock: 'gold', orders: 'ink',
     payments: 'ok', customers: 'blush', settings: 'muted', security: 'bad'
@@ -653,7 +671,7 @@
       const when = new Date(a.at);
       const changes = (a.changes || []).length
         ? `<div class="act__changes">${a.changes.map((c) =>
-            `<span class="act__change"><i>${esc(c.label)}</i> ${esc(c.from ?? '—')} → <b>${esc(c.to ?? '—')}</b></span>`
+            `<span class="act__change"><i>${esc(c.label)}</i> ${esc(c.from ?? ' ')} → <b>${esc(c.to ?? ' ')}</b></span>`
           ).join('')}</div>`
         : '';
       return `
@@ -751,7 +769,7 @@
   /* -------------------------------------------------- books & downloads */
 
   // Downloads have to carry the admin token, and a plain <a href> cannot set a
-  // header — so fetch the file, then hand the browser a blob to save. This also
+  // header, so fetch the file, then hand the browser a blob to save. This also
   // keeps the token out of the URL, where it would end up in server logs.
   async function fetchAsBlob(path) {
     const res = await fetch(`/api${path}`, {
@@ -835,7 +853,7 @@
 
   // The panel keeps itself current: orders, stock and activity arrive without
   // anyone pressing refresh. Netlify runs the API as functions, so there is no
-  // socket to hold open — this polls, but only while the tab is actually being
+  // socket to hold open, this polls, but only while the tab is actually being
   // looked at, and never while the shop owner is in the middle of something.
   const LIVE_INTERVAL = 12000;
   let liveTimer = null;
@@ -927,6 +945,7 @@
     $('#mpesaForm').addEventListener('submit', saveMpesa);
     $('#reportForm').addEventListener('submit', saveReportSettings);
     $('#sendReport').addEventListener('click', emailReport);
+    $('#sendTestEmail').addEventListener('click', sendTestEmail);
     $('#markRead').addEventListener('click', markActivityRead);
     $('#activityGroup').addEventListener('change', loadActivity);
     $('#reportPeriod').addEventListener('change', loadActivity);
@@ -1003,6 +1022,6 @@
   if (state.token) {
     api('/admin/overview')
       .then(() => start())
-      .catch(() => { /* token stale — the login screen stays */ });
+      .catch(() => { /* token stale, the login screen stays */ });
   }
 })();

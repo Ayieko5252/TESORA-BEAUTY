@@ -603,7 +603,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 .pill--delivered { background: #e6f3ec; color: var(--ok); }
 .pill--cancelled { background: #fbe9e7; color: var(--bad); }
 
-/* checkout gate — shown when nobody is signed in */
+/* checkout gate, shown when nobody is signed in */
 .gate { text-align: center; padding: 1.6rem .6rem 1rem; }
 .gate__icon {
   width: 54px; height: 54px; margin: 0 auto .9rem; border-radius: 50%;
@@ -662,7 +662,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
   max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .acct-who[hidden] { display: none; }
-/* Still shown on a phone — just shorter, so the header keeps its shape. */
+/* Still shown on a phone, just shorter, so the header keeps its shape. */
 @media (max-width: 720px) {
   .icon-btn--acct { padding: 0 .6rem 0 .5rem; gap: .3rem; }
   .acct-who { font-size: .74rem; max-width: 4.6rem; }
@@ -671,8 +671,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 /* ======================================================================
    Phones, tablets and Windows
    Layout follows screen width; tap-target size follows the pointer, so a
-   Windows PC with a mouse keeps the refined look while a phone — or a
-   touchscreen laptop — gets controls a thumb can actually hit.
+   Windows PC with a mouse keeps the refined look while a phone, or a
+   touchscreen laptop, gets controls a thumb can actually hit.
    ====================================================================== */
 
 /* Keyboard focus, for shoppers tabbing through the shop on Windows. */
@@ -687,7 +687,7 @@ button:focus-visible, a:focus-visible, .select:focus-visible {
 
 /* The header's blur (backdrop-filter) makes it the anchor for the fixed phone
    menu inside it, so the closed menu's -130% slide stopped short and its last
-   link sat over the announcement bar. Hide it outright when closed — which also
+   link sat over the announcement bar. Hide it outright when closed, which also
    keeps its invisible links out of the keyboard and screen-reader order. The
    visibility change waits for the slide to finish so closing still animates. */
 @media (max-width: 720px) {
@@ -721,7 +721,7 @@ button:focus-visible, a:focus-visible, .select:focus-visible {
   .brand__tag { display: none; }
 }
 
-/* phones — 360px Androids up to 430px iPhone Pro Max */
+/* phones, 360px Androids up to 430px iPhone Pro Max */
 @media (max-width: 430px) {
   .header__inner { gap: .5rem; }
   .brand { gap: .45rem; }

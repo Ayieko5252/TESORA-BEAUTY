@@ -90,7 +90,7 @@ function defaults() {
     products: [],
     orders: [],
     customers: [],   // shoppers with an account
-    activity: [],    // the store's paper trail — see lib/activity.js
+    activity: [],    // the store's paper trail, see lib/activity.js
     counters: { order: 1000 }
   };
 }

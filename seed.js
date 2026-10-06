@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { db, saveNow, newId } from './db.js';
 
 if (process.argv.includes('--if-empty') && db.products.length > 0) {
-  console.log(`Shop already has ${db.products.length} products — not seeding.`);
+  console.log(`Shop already has ${db.products.length} products, not seeding.`);
   process.exit(0);
 }
 
@@ -115,13 +115,13 @@ const SAMPLES = [
   ['Pure Seduction Body Mist', "Victoria's Secret", 'Perfumes & Mists', 1950, 20, 14, 'perfume', 'Smell good, feel amazing. A fresh, flirty signature scent.', true],
   ['Yara Eau de Parfum', 'Lattafa', 'Perfumes & Mists', 3800, 10, 6, 'perfume', 'Long lasting, captivating fragrance with vanilla and orchid.', true],
   ['Glam Woman Eau de Parfum', 'Bellavita', 'Perfumes & Mists', 2400, 0, 8, 'perfume', 'A warm, confident fragrance for day into night.', false],
-  ['Vanilla Fragrance Mist', 'Tessora Select', 'Perfumes & Mists', 900, 0, 30, 'perfume', 'Sweet, soft vanilla — perfect for layering.', false],
+  ['Vanilla Fragrance Mist', 'Tessora Select', 'Perfumes & Mists', 900, 0, 30, 'perfume', 'Sweet, soft vanilla, perfect for layering.', false],
   ['Roll-On Perfume Oil', 'Tessora Select', 'Perfumes & Mists', 350, 0, 45, 'perfume', 'Pocket-size fragrance oil that lasts for hours.', false],
 
   ['Nourishing Shampoo', 'Sunsilk', 'Hair Care', 620, 0, 24, 'shampoo', 'Cleanses gently and leaves hair soft and manageable.', false],
   ['Intensive Hair Conditioner', 'Dove', 'Hair Care', 680, 10, 18, 'shampoo', 'Restores moisture and reduces breakage.', false],
 
-  ['3D Mink False Lashes', 'Kiss Beauty', 'Beauty Accessories', 300, 0, 55, 'brush', 'For that extra pretty look — reusable and easy to apply.', true],
+  ['3D Mink False Lashes', 'Kiss Beauty', 'Beauty Accessories', 300, 0, 55, 'brush', 'For that extra pretty look, reusable and easy to apply.', true],
   ['12-Piece Makeup Brush Set', 'Tessora Select', 'Beauty Accessories', 1400, 15, 10, 'brush', 'Everything you need, from foundation to blending.', false],
   ['Beauty Blender Sponge Set', 'Tessora Select', 'Beauty Accessories', 350, 0, 38, 'brush', 'Soft sponges for a seamless, natural finish.', false],
   ['Satin Scrunchie Pack', 'Tessora Select', 'Beauty Accessories', 250, 0, 3, 'brush', 'Gentle on hair, pretty on your wrist. Pack of four.', false],

@@ -276,7 +276,7 @@ function normalizeProduct(input, existing = {}) {
     brand: str(input.brand ?? existing.brand, 60),
     description: str(input.description ?? existing.description, 1500),
     price,
-    // What you paid for it. Optional — but without it the shop cannot work out
+    // What you paid for it. Optional, but without it the shop cannot work out
     // profit, so the financial statements say so rather than guessing.
     costPrice: Math.max(0, Math.round(num(input.costPrice ?? existing.costPrice, 0))),
     discount,
@@ -315,7 +315,7 @@ async function api(req, res, url) {
     const problem = passwordProblem(body.password);
     if (problem) return sendJSON(res, 400, { error: problem });
     if (db.customers.some((c) => c.email === email)) {
-      return sendJSON(res, 409, { error: 'You already have an account with that email — please sign in.' });
+      return sendJSON(res, 409, { error: 'You already have an account with that email, please sign in.' });
     }
 
     const customer = {
@@ -440,7 +440,7 @@ async function api(req, res, url) {
     const delivery = await computeDelivery(settings, subtotal,
       customer.lat !== null ? { lat: customer.lat, lng: customer.lng } : null);
 
-    // The shop is paid up front by M-Pesa — there is no cash on delivery.
+    // The shop is paid up front by M-Pesa, there is no cash on delivery.
     // If M-Pesa is not configured yet the order is still taken and recorded as
     // awaiting payment, so trading never stops; it is simply not marked paid.
     const mpesaLive = Boolean(settings.mpesaEnabled) && mpesaConfigured(settings);
@@ -473,12 +473,12 @@ async function api(req, res, url) {
     db.orders.unshift(order);
     log.record(db, {
       type: 'order.placed', actor: 'customer', target: order.code, targetId: order.id,
-      summary: `${customer.name} ordered ${items.length} item${items.length === 1 ? '' : 's'} — ${order.total}`
+      summary: `${customer.name} ordered ${items.length} item${items.length === 1 ? '' : 's'}, ${order.total}`
     });
     saveNow();
     notifyOwner({
       when: settings.notifyNewOrder,
-      subject: `New order ${order.code} — ${settings.currency || 'KSh'} ${order.total}`,
+      subject: `New order ${order.code}, ${settings.currency || 'KSh'} ${order.total}`,
       body: mailer.orderHtml(order, settings, 'NEW ORDER')
     });
     return sendJSON(res, 201, { order });
@@ -506,7 +506,7 @@ async function api(req, res, url) {
     }
     if (!settings.mpesaEnabled || !mpesaConfigured(settings)) {
       return sendJSON(res, 400, {
-        error: 'M-Pesa checkout is not switched on yet. Your order is saved — '
+        error: 'M-Pesa checkout is not switched on yet. Your order is saved, '
           + 'send it on WhatsApp and we will confirm payment with you.'
       });
     }
@@ -669,7 +669,7 @@ async function api(req, res, url) {
       });
     }
     const result = await mailer.sendEmail(settings, {
-      subject: `${settings.storeName || 'Tessora'} store report — ${period}`,
+      subject: `${settings.storeName || 'Tessora'} store report, ${period}`,
       html: mailer.reportHtml(log.buildReport(db, period), settings)
     });
     if (!result.sent) {
@@ -754,7 +754,7 @@ async function api(req, res, url) {
       saveNow();
       notifyOwner({
         when: settings.notifyAdminChanges,
-        subject: `Product added — ${product.name}`,
+        subject: `Product added, ${product.name}`,
         body: mailer.activityHtml(added, settings)
       });
       return sendJSON(res, 201, { product: publicProduct(product) });
@@ -784,7 +784,7 @@ async function api(req, res, url) {
       if (changes.length) {
         notifyOwner({
           when: settings.notifyAdminChanges,
-          subject: `Product edited — ${product.name}`,
+          subject: `Product edited, ${product.name}`,
           body: mailer.activityHtml(edited, settings)
         });
       }

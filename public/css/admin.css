@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Tessora Beauty — admin dashboard
+   Tessora Beauty, admin dashboard
    ========================================================================== */
 
 :root {
@@ -455,14 +455,14 @@ tbody tr:last-child td { border-bottom: 0; }
   font-variant-numeric: tabular-nums;
 }
 .cost-edit:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
-/* an empty one is worth noticing — it is what makes profit incomplete */
+/* an empty one is worth noticing, it is what makes profit incomplete */
 .cost-edit--empty { border-style: dashed; border-color: var(--warn); background: var(--warn-bg); }
 
 /* ======================================================================
    Phones, tablets and Windows
    Layout follows screen width; tap-target size follows the pointer, so a
-   Windows laptop with a mouse keeps the compact panel while a phone — or a
-   touchscreen laptop — gets buttons a thumb can actually hit.
+   Windows laptop with a mouse keeps the compact panel while a phone, or a
+   touchscreen laptop, gets buttons a thumb can actually hit.
    ====================================================================== */
 
 /* Keyboard focus, for anyone tabbing through the panel on Windows. */
@@ -495,7 +495,7 @@ button:focus-visible, a:focus-visible, .prod-cell--edit:focus-visible {
   }
 }
 
-/* ---- tables that fit a normal Windows laptop (1280–1440 wide) ---- */
+/* ---- tables that fit a normal Windows laptop (1280 to 1440 wide) ---- */
 @media (max-width: 1440px) {
   .rt .col-cat { display: none; }          /* category moves under the name */
   .rt th, .rt td { padding-left: .75rem; padding-right: .75rem; }

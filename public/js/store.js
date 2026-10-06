@@ -1,4 +1,4 @@
-/* Tessora Beauty — storefront logic (vanilla JS, no build step) */
+/* Tessora Beauty, storefront logic (vanilla JS, no build step) */
 (() => {
   'use strict';
 
@@ -14,7 +14,7 @@
     auth: { token: loadToken(), customer: null, orders: [] },
     filter: { category: 'all', query: '', sort: 'new', inStock: false, onSale: false },
     checkout: {
-      // M-Pesa is the only way to pay — the shop does not take cash on delivery.
+      // M-Pesa is the only way to pay, the shop does not take cash on delivery.
       coords: null,        // { lat, lng } chosen on the map
       quote: null,         // { fee, distanceKm, basis } from /api/delivery/quote
       map: null, marker: null, geocoder: null,
@@ -50,7 +50,7 @@
     try {
       if (token) localStorage.setItem(AUTH_KEY, token);
       else localStorage.removeItem(AUTH_KEY);
-    } catch { /* private browsing — the session just won't be remembered */ }
+    } catch { /* private browsing, the session just won't be remembered */ }
   }
 
   const signedIn = () => Boolean(state.auth.token && state.auth.customer);
@@ -116,7 +116,7 @@
   /**
    * Keep the shop honest: stock counts, prices and offers are re-read from the
    * server so a customer never adds something that sold out while they browsed.
-   * Only while the tab is visible, and never mid-checkout — re-rendering under
+   * Only while the tab is visible, and never mid-checkout, re-rendering under
    * an open drawer would throw away what they were doing.
    */
   function startLiveStock() {
@@ -141,7 +141,7 @@
 
   function applyBranding() {
     const s = state.settings;
-    document.title = `${s.storeName || 'Tessora Beauty'} — ${s.tagline || 'Your Beauty. Your Aura.'}`;
+    document.title = `${s.storeName || 'Tessora Beauty'}, ${s.tagline || 'Your Beauty. Your Aura.'}`;
     $('#announce').textContent = s.announcement || '';
     $('#announce').hidden = !s.announcement;
     $('#brandName').textContent = (s.storeName || 'Tessora').split(' ')[0];
@@ -149,8 +149,8 @@
     $('#heroTag').textContent = s.tagline || '';
     $('#footLocation').textContent = s.location || '';
     $('#year').textContent = new Date().getFullYear();
-    $('#statProducts').textContent = state.products.length || '—';
-    $('#statCats').textContent = new Set(state.products.map((p) => p.category)).size || '—';
+    $('#statProducts').textContent = state.products.length || ' ';
+    $('#statCats').textContent = new Set(state.products.map((p) => p.category)).size || ' ';
 
     const hello = waLink(`Hi ${s.storeName || 'Tessora Beauty'} ♡ I'd like to make an order.`);
     ['#waFloat', '#footWa', '#socialWa'].forEach((sel) => { $(sel).href = hello; });
@@ -384,7 +384,7 @@
     who.hidden = !on;
     who.textContent = on ? state.auth.customer.name.split(' ')[0] : '';
     $('#accountOpen').setAttribute('aria-label',
-      on ? `Your account — signed in as ${state.auth.customer.name}` : 'Sign in to your account');
+      on ? `Your account, signed in as ${state.auth.customer.name}` : 'Sign in to your account');
 
     // The checkout is only open to people with an account.
     $('#checkoutGate').hidden = on;
@@ -504,7 +504,7 @@
         accountMessage('Welcome ♡ We just need your phone number when you check out, for delivery.', 'ok');
       }
     } catch {
-      accountMessage('Network problem — please try again.');
+      accountMessage('Network problem, please try again.');
     }
   }
 
@@ -532,7 +532,7 @@
       renderAccount();
       prefillCheckout();
     } catch {
-      accountMessage('Network problem — please try again.');
+      accountMessage('Network problem, please try again.');
     } finally {
       btn.disabled = false;
     }
@@ -556,7 +556,7 @@
       await refreshAccount();
       prefillCheckout();
     } catch {
-      accountMessage('Network problem — please try again.');
+      accountMessage('Network problem, please try again.');
     } finally {
       btn.disabled = false;
     }
@@ -580,7 +580,7 @@
       event.target.reset();
       $('#acctPasswordForm').hidden = true;
     } catch {
-      accountMessage('Network problem — please try again.');
+      accountMessage('Network problem, please try again.');
     } finally {
       btn.disabled = false;
     }
@@ -638,7 +638,7 @@
     renderAccount();   // shows the sign-in gate when there is no account yet
     prefillCheckout();
     openDrawer('#checkoutDrawer');
-    initMap(); // lazy — only builds once, only if a Maps key is set
+    initMap(); // lazy, only builds once, only if a Maps key is set
   }
 
   /* --------------------------------------------------------- delivery map */
@@ -740,7 +740,7 @@
     let line;
     if (q.basis === 'free') line = '<b>Free delivery</b> to your location ♡';
     else if (q.basis === 'distance' && q.distanceKm != null) {
-      line = `About <b>${q.distanceKm} km</b> away — ${q.distanceKm} × ${money(q.perKm)}/km`
+      line = `About <b>${q.distanceKm} km</b> away, ${q.distanceKm} × ${money(q.perKm)}/km`
         + `${q.baseFee ? ` + ${money(q.baseFee)} base` : ''} = <b>${money(q.fee)}</b>`;
     } else line = `Delivery: <b>${money(q.fee)}</b>`;
 
@@ -806,7 +806,7 @@
       toast(`Order ${data.order.code} placed ♡`);
 
       // Straight into the M-Pesa prompt. If the shop has not switched M-Pesa on
-      // yet, the order is still saved and we point them at WhatsApp — we never
+      // yet, the order is still saved and we point them at WhatsApp, we never
       // offer to settle it on delivery.
       if (state.settings.mpesaEnabled) {
         await payWithMpesa(data.order, waMsg);
@@ -828,7 +828,7 @@
         refreshAccount();
       }
     } catch {
-      $('#checkoutMsg').innerHTML = `<div class="notice notice--error">Network problem — please try again.</div>`;
+      $('#checkoutMsg').innerHTML = `<div class="notice notice--error">Network problem, please try again.</div>`;
     } finally {
       btn.disabled = false;
       btn.textContent = 'Place order & pay';
@@ -836,7 +836,7 @@
   }
 
   /* -------------------------------------------------------- M-Pesa flow */
-  /** Link to the order's receipt — the token lets the customer open it later. */
+  /** Link to the order's receipt, the token lets the customer open it later. */
   function receiptButton(order) {
     return `<a class="btn btn--outline btn--block" style="margin-bottom:.6rem"
       href="/api/orders/${esc(order.id)}/receipt?token=${encodeURIComponent(order.payToken)}"
@@ -888,7 +888,7 @@
           state.checkout.quote = null;
           $('#deliveryEstimate').hidden = true;
           $('#checkoutMsg').innerHTML =
-            `<div class="notice notice--ok"><b>Payment received ♡</b><br>Order <b>${esc(order.code)}</b> is paid${data.receipt ? ` — M-Pesa ${esc(data.receipt)}` : ''}. We'll deliver shortly.</div>`
+            `<div class="notice notice--ok"><b>Payment received ♡</b><br>Order <b>${esc(order.code)}</b> is paid${data.receipt ? `, M-Pesa ${esc(data.receipt)}` : ''}. We'll deliver shortly.</div>`
             + receiptButton(order)
             + waButton(waMsg, 'Send order details on WhatsApp');
           toast('Payment received ♡');
@@ -897,7 +897,7 @@
         }
         if (data.status === 'failed') {
           $('#checkoutMsg').innerHTML =
-            `<div class="notice notice--error">The payment didn't go through. Order <b>${esc(order.code)}</b> is saved — try the prompt again from WhatsApp and we'll help you finish it.</div>`
+            `<div class="notice notice--error">The payment didn't go through. Order <b>${esc(order.code)}</b> is saved, try the prompt again from WhatsApp and we'll help you finish it.</div>`
             + waButton(waMsg);
           return;
         }
