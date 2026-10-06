@@ -33,6 +33,47 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Great+Vibes&display=swap" rel="stylesheet">
+<!-- Who the shop is, in the form Google reads. Without this the shop is just a
+     page; with it, a search for the name can show the shop, its address and
+     its links. The product pages at /p/<slug> carry their own Product data. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Store",
+  "name": "Tessora Beauty",
+  "alternateName": ["Tessora", "Tesora Beauty"],
+  "description": "Makeup, skincare, body care, perfumes and beauty accessories. Quality, authentic and affordable, delivered across Kenya from Nairobi.",
+  "url": "https://tessorabeauty.co.ke/",
+  "logo": "https://tessorabeauty.co.ke/assets/logo.svg",
+  "image": "https://tessorabeauty.co.ke/assets/share-card.jpg",
+  "email": "lokulainteyia@gmail.com",
+  "telephone": "+254757580088",
+  "sameAs": ["https://www.instagram.com/_inteyia.noir_"],
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Nairobi",
+    "addressRegion": "Nairobi",
+    "addressCountry": "KE"
+  },
+  "areaServed": { "@type": "Country", "name": "Kenya" },
+  "currenciesAccepted": "KES",
+  "paymentAccepted": "M-Pesa",
+  "priceRange": "KSh"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Tessora Beauty",
+  "url": "https://tessorabeauty.co.ke/",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": { "@type": "EntryPoint", "urlTemplate": "https://tessorabeauty.co.ke/?q={search_term_string}" },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
 <link rel="stylesheet" href="/css/styles.css">
 <style>
   :root { --script: "Great Vibes", "Segoe Script", cursive; }
@@ -442,6 +483,38 @@
 <!-- ------------------------------------------------------- quick view -->
 <div class="modal" id="modal">
   <div class="modal__panel" id="modalPanel"></div>
+</div>
+
+<!-- ------------------------------------------------- the M-Pesa payment sheet
+     Everything between tapping "Place order" and the money landing happens
+     here, so the customer is never left guessing whether to wait or retry. -->
+<div class="pay" id="paySheet" role="dialog" aria-modal="true" aria-labelledby="payHeading" aria-hidden="true">
+  <div class="pay__panel" role="document">
+    <button class="pay__close" id="payClose" type="button" aria-label="Close">&times;</button>
+
+    <div class="pay__brandrow">
+      <span class="pay__mark">M-PESA</span>
+      <span class="pay__code" id="payCode"></span>
+    </div>
+
+    <div class="pay__amount" id="payAmount"></div>
+    <div class="pay__to">to <b id="payPhone"></b></div>
+
+    <h2 class="pay__heading" id="payHeading">Sending the request</h2>
+    <p class="pay__line" id="payLine">Hold on, we are asking Safaricom to call your phone.</p>
+
+    <ol class="pay__steps" id="paySteps">
+      <li data-step="send"><span>Request sent to Safaricom</span></li>
+      <li data-step="prompt"><span>Pending your approval</span></li>
+      <li data-step="pin"><span>You enter your M-Pesa PIN</span></li>
+      <li data-step="done"><span>Payment confirmed</span></li>
+    </ol>
+
+    <div class="pay__bar" id="payBarWrap" aria-hidden="true"><i id="payBar"></i></div>
+    <p class="pay__hint" id="payHint">Keep this page open while you pay.</p>
+
+    <div class="pay__actions" id="payActions"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>

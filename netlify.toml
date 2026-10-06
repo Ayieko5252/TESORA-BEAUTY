@@ -27,6 +27,26 @@
   to = "/receipt.html"
   status = 200
 
+# Every product has an address of its own, rendered on the server so a search
+# engine has a real page to index. The shop in the browser is unchanged.
+[[redirects]]
+  from = "/p/:slug"
+  to = "/.netlify/functions/pages/p/:slug"
+  status = 200
+
+[[redirects]]
+  from = "/shop/:slug"
+  to = "/.netlify/functions/pages/shop/:slug"
+  status = 200
+
+# The sitemap is built from the live catalogue, so it lists a product the day
+# it is added. This wins over the static file of the same name.
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/pages/sitemap.xml"
+  status = 200
+  force = true
+
 # ---------------------------------------------------------------- security
 [[headers]]
   for = "/*"

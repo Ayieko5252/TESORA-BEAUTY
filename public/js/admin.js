@@ -520,6 +520,10 @@
     $('#setBaseFee').value = s.deliveryBaseFee ?? 0;
     $('#setMapsKey').value = s.mapsApiKey || '';
     $('#setGoogleClientId').value = s.googleClientId || '';
+    $('#setSupportEmail').value = s.supportEmail || '';
+    $('#setOrdersEmail').value = s.ordersEmail || '';
+    $('#setSiteUrl').value = s.siteUrl || '';
+    $('#setNotifyCustomer').checked = s.notifyCustomer !== false;
     $('#setStoreLat').value = s.storeLat ?? '';
     $('#setStoreLng').value = s.storeLng ?? '';
 
@@ -620,6 +624,10 @@
     const body = {
       reportEmail: $('#setReportEmail').value.trim(),
       emailFrom: $('#setEmailFrom').value.trim(),
+      supportEmail: $('#setSupportEmail').value.trim(),
+      ordersEmail: $('#setOrdersEmail').value.trim(),
+      siteUrl: $('#setSiteUrl').value.trim(),
+      notifyCustomer: $('#setNotifyCustomer').checked,
       notifyNewOrder: $('#setNotifyNewOrder').checked,
       notifyPayment: $('#setNotifyPayment').checked,
       notifyStatusChange: $('#setNotifyStatus').checked,

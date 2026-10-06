@@ -68,6 +68,12 @@ const SETTINGS_ADDED = {
   // shop to Google and is safe in the browser. There is no client secret: the
   // browser hands us a signed token and the server checks it with Google.
   googleClientId: '',
+  // where the shop lives, used for the receipt links inside emails
+  siteUrl: 'https://tessorabeauty.co.ke',
+  // the two staffed addresses
+  supportEmail: '',
+  ordersEmail: '',
+  notifyCustomer: true,
   // reports and alerts
   reportEmail: '',
   emailApiKey: '',
@@ -344,6 +350,49 @@ async function notify(db, { when, subject, body }) {
   if (!when) return;
   if (!mailer.isConfigured(db.settings)) return;
   await mailer.sendEmail(db.settings, { subject, html: body }).catch(() => {});
+}
+
+/**
+ * Email the customer about their own order. Separate from notify() on purpose:
+ * that one goes to the shop owner and is governed by the owner's alert
+ * settings, this one goes to the person who bought something and is governed
+ * by whether they gave us an address. Like notify() it never throws, because a
+ * mail problem must never undo an order that is already saved.
+ */
+async function notifyCustomer(db, order, kind) {
+  const s = db.settings;
+  if (s.notifyCustomer === false) return { sent: false, reason: 'off' };
+  const to = order?.customer?.email;
+  if (!to) return { sent: false, reason: 'no-customer-email' };
+  if (!mailer.isConfigured(s)) return { sent: false, reason: 'no-api-key' };
+
+  const code = order.code;
+  const plan = {
+    placed: {
+      subject: `We have your order ${code}`,
+      html: mailer.customerOrderHtml(order, s)
+    },
+    paid: {
+      subject: `Payment received, your order ${code} is confirmed`,
+      html: mailer.customerPaidHtml(order, s)
+    },
+    failed: {
+      subject: `Your order ${code} is still waiting for payment`,
+      html: mailer.customerFailedHtml(order, s)
+    },
+    status: {
+      subject: `Order ${code}: ${order.status}`,
+      html: mailer.customerStatusHtml(order, s, order.status)
+    }
+  }[kind];
+  if (!plan) return { sent: false, reason: 'unknown-kind' };
+
+  return mailer.sendEmail(s, {
+    to,
+    subject: plan.subject,
+    html: plan.html,
+    text: mailer.customerText(order, s, kind)
+  }).catch(() => ({ sent: false, reason: 'threw' }));
 }
 
 /* ------------------------------------------------- order email fallback */
@@ -660,6 +709,7 @@ export default async function handler(req) {
       subject: `New order ${order.code}, ${settings.currency || 'KSh'} ${order.total}`,
       body: mailer.orderHtml(order, settings, 'NEW ORDER')
     });
+    await notifyCustomer(db, order, 'placed');
     // Awaited, not fired off: Netlify can freeze a function as soon as it has
     // responded, which would silently drop the email.
     if (settings.notifyNewOrder !== false && !mailer.isConfigured(settings)) {
@@ -804,6 +854,8 @@ export default async function handler(req) {
           subject: `${cb.resultCode === '0' ? 'Payment received' : 'Payment failed'}, ${order.code}`,
           body: mailer.orderHtml(order, settings, cb.resultCode === '0' ? 'PAYMENT RECEIVED' : 'PAYMENT FAILED')
         });
+        // The receipt going back to the buyer, the moment Safaricom confirms.
+        await notifyCustomer(db, order, cb.resultCode === '0' ? 'paid' : 'failed');
       }
     }
     // Always acknowledge, so Safaricom stops retrying.
@@ -1128,6 +1180,7 @@ export default async function handler(req) {
       subject: `Order ${order.code} ${status}`,
       body: mailer.orderHtml(order, settings, `ORDER ${status.toUpperCase()}`)
     });
+    await notifyCustomer(db, order, 'status');
 
     return json(200, { order });
   }
@@ -1176,7 +1229,13 @@ export default async function handler(req) {
     if (body.emailFrom !== undefined) s.emailFrom = str(body.emailFrom, 160);
     if (body.emailApiKey) s.emailApiKey = str(body.emailApiKey, 120);
     if (body.emailApiKey === '') s.emailApiKey = '';
-    for (const k of ['notifyNewOrder', 'notifyPayment', 'notifyStatusChange', 'notifyAdminChanges']) {
+
+    // the two staffed addresses, and where the shop lives
+    if (body.supportEmail !== undefined) s.supportEmail = str(body.supportEmail, 160);
+    if (body.ordersEmail !== undefined) s.ordersEmail = str(body.ordersEmail, 160);
+    if (body.siteUrl !== undefined) s.siteUrl = str(body.siteUrl, 200);
+
+    for (const k of ['notifyNewOrder', 'notifyPayment', 'notifyStatusChange', 'notifyAdminChanges', 'notifyCustomer']) {
       if (body[k] !== undefined) s[k] = Boolean(body[k]);
     }
 
@@ -1190,6 +1249,8 @@ export default async function handler(req) {
       mpesaEnabled: 'M-Pesa enabled', mpesaEnv: 'M-Pesa environment',
       mpesaType: 'M-Pesa type', mpesaShortcode: 'M-Pesa shortcode', mpesaTill: 'M-Pesa till',
       reportEmail: 'Report email', notifyNewOrder: 'Alert on new order',
+      supportEmail: 'Customer care email', ordersEmail: 'Orders email',
+      siteUrl: 'Shop address', notifyCustomer: 'Email the customer',
       notifyPayment: 'Alert on payment', notifyStatusChange: 'Alert on status change',
       notifyAdminChanges: 'Alert on every edit'
     });

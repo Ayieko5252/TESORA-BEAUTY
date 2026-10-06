@@ -499,6 +499,34 @@
                 <small>Free at resend.com, 3,000 emails a month. Until this is set, alerts stay in Activity only.</small>
               </div>
 
+              <h3 class="set-sub">What the customer receives</h3>
+              <p class="card__lead">
+                Every order gets a confirmation, and every confirmed payment gets the
+                receipt back by email. These two addresses are what the customer sees
+                and replies to.
+              </p>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="setSupportEmail">Customer care email</label>
+                  <input id="setSupportEmail" type="email" placeholder="care@tessorabeauty.co.ke">
+                  <small>Where a customer's reply lands. Printed in every email we send them.</small>
+                </div>
+                <div class="field">
+                  <label for="setOrdersEmail">Orders email</label>
+                  <input id="setOrdersEmail" type="email" placeholder="orders@tessorabeauty.co.ke">
+                  <small>The address order mail is sent from. Its domain must be verified with Resend.</small>
+                </div>
+              </div>
+              <div class="field">
+                <label for="setSiteUrl">Shop address</label>
+                <input id="setSiteUrl" type="url" placeholder="https://tessorabeauty.co.ke">
+                <small>Used to build the receipt link inside each email.</small>
+              </div>
+              <label class="switch" style="margin-bottom:.8rem">
+                <input type="checkbox" id="setNotifyCustomer"> Email the customer their confirmation and receipt
+              </label>
+
+              <h3 class="set-sub">What you receive</h3>
               <div class="switch-grid">
                 <label class="switch"><input type="checkbox" id="setNotifyNewOrder"> Email me every new order</label>
                 <label class="switch"><input type="checkbox" id="setNotifyPayment"> Email me when a payment lands</label>

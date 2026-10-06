@@ -109,8 +109,26 @@
     render();
     renderCartCount();
     wire();
+    openLinkedProduct();
     await refreshAccount();   // restores the session if they signed in before
     startLiveStock();
+  }
+
+  /**
+   * Every product also has a page of its own at /p/<slug>, which search engines
+   * index and customers share. Its button comes back here as /?product=<slug>,
+   * so the shop opens with that product already in front of them.
+   */
+  function openLinkedProduct() {
+    const want = new URLSearchParams(location.search).get('product');
+    if (!want) return;
+    const slug = want.toLowerCase();
+    const p = state.products.find((x) => (x.slug || '').toLowerCase() === slug)
+      || state.products.find((x) => x.id === want);
+    if (!p) return;
+    openProduct(p.id);
+    // Drop the parameter so a refresh, or a bookmark, is just the shop.
+    history.replaceState(null, '', location.pathname + location.hash);
   }
 
   /**
@@ -161,15 +179,25 @@
   }
 
   /* --------------------------------------------------------- rendering */
+
+  /** The same name a product page uses, so the two always agree. */
+  function slugify(s) {
+    return String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 70);
+  }
+
+  /* Each tile is a real link to /shop/<category>, which is a real page. That is
+     how a search engine finds its way from here to every product; the click
+     handler keeps the shopper on this page and just filters. */
   function renderCategories() {
     const counts = new Map();
     state.products.forEach((p) => counts.set(p.category, (counts.get(p.category) || 0) + 1));
     $('#catGrid').innerHTML = state.categories.map((c) => `
-      <button class="cat" data-cat="${esc(c)}">
+      <a class="cat" href="/shop/${esc(slugify(c))}" data-cat="${esc(c)}">
         <div class="cat__icon">${CAT_ICONS[c] || '♡'}</div>
         <b>${esc(c)}</b>
         <span>${counts.get(c) || 0} product${(counts.get(c) || 0) === 1 ? '' : 's'}</span>
-      </button>`).join('');
+      </a>`).join('');
   }
 
   function renderChips() {
@@ -844,64 +872,191 @@
       target="_blank" rel="noopener">View your receipt</a>`;
   }
 
-  function waButton(waMsg, label) {
-    return `<a class="btn btn--outline btn--block" style="margin-top:.6rem"
-      href="${esc(waLink(waMsg))}" target="_blank" rel="noopener">${label || 'Send order on WhatsApp'}</a>`;
+
+  /* ------------------------------------------------- the payment sheet */
+  /* One screen that owns the whole wait: the amount, the number being
+     charged, which of the four steps we are on, and how much time is left.
+     Every state the payment can end in finishes here, so the customer is
+     never left looking at a spinner that means nothing. */
+
+  const WAIT_SECONDS = 120;          // how long we keep watching for the money
+  let payTimer = null;               // the one-second countdown
+  let payPolling = false;            // stops a stale poll writing over a new one
+
+  const payEl = (id) => document.getElementById(id);
+
+  function paySteps(active) {
+    const order = ['send', 'prompt', 'pin', 'done'];
+    const at = order.indexOf(active);
+    document.querySelectorAll('#paySteps li').forEach((li) => {
+      const i = order.indexOf(li.getAttribute('data-step'));
+      li.classList.toggle('is-done', at >= 0 && i < at);
+      li.classList.toggle('is-now', i === at);
+    });
+  }
+
+  function paySay(heading, line) {
+    payEl('payHeading').textContent = heading;
+    payEl('payLine').innerHTML = line;
+  }
+
+  function payActions(html) { payEl('payActions').innerHTML = html || ''; }
+
+  function openPaySheet(order, phone) {
+    payEl('payCode').textContent = order.code;
+    payEl('payAmount').textContent = money(order.total);
+    payEl('payPhone').textContent = phone;
+    payEl('payBarWrap').hidden = false;
+    payEl('payBar').style.transform = 'scaleX(1)';
+    payEl('payHint').textContent = 'Waiting for your approval. Keep this page open.';
+    payEl('payClose').hidden = true;      // nothing to close until it resolves
+    payActions('');
+    paySteps('send');
+    paySay('Sending the request', 'Hold on, we are asking Safaricom to call your phone.');
+    payEl('paySheet').classList.add('is-open');
+    payEl('paySheet').setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePaySheet() {
+    stopPayTimer();
+    payPolling = false;
+    payEl('paySheet').classList.remove('is-open');
+    payEl('paySheet').setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function startPayTimer(seconds) {
+    stopPayTimer();
+    let left = seconds;
+    const bar = payEl('payBar');
+    bar.style.transform = 'scaleX(1)';
+    payTimer = setInterval(() => {
+      left -= 1;
+      bar.style.transform = `scaleX(${Math.max(0, left / seconds)})`;
+      if (left <= 0) stopPayTimer();
+    }, 1000);
+  }
+
+  function stopPayTimer() {
+    if (payTimer) { clearInterval(payTimer); payTimer = null; }
+  }
+
+  /** Every ending closes the bar and gives the customer something to do next. */
+  function payEnd({ kind, heading, line, receipt, order, waMsg, extra }) {
+    stopPayTimer();
+    payPolling = false;
+    payEl('payBarWrap').hidden = true;
+    payEl('payHint').textContent = '';
+    payEl('payClose').hidden = false;
+    paySteps(kind === 'ok' ? 'done' : '');
+    if (kind === 'ok') {
+      document.querySelectorAll('#paySteps li').forEach((li) => {
+        li.classList.add('is-done'); li.classList.remove('is-now');
+      });
+    }
+    payEl('payHeading').insertAdjacentHTML('beforebegin',
+      `<div class="pay__result pay__result--${kind === 'ok' ? 'ok' : 'bad'}">${kind === 'ok' ? '&#10003;' : '!'}</div>`);
+    paySay(heading, line + (receipt ? `<br><span class="pay__receipt">M-PESA ${esc(receipt)}</span>` : ''));
+    payActions(
+      (order ? `<a class="btn btn--dark btn--block" target="_blank" rel="noopener"
+                   href="/api/orders/${esc(order.id)}/receipt?token=${encodeURIComponent(order.payToken)}">View your receipt</a>` : '')
+      + (extra || '')
+      + (waMsg ? `<a class="btn btn--outline btn--block" target="_blank" rel="noopener"
+                     href="${esc(waLink(waMsg))}">Message us on WhatsApp</a>` : '')
+      + `<button class="btn btn--light btn--block" type="button" data-pay-close>Back to the shop</button>`
+    );
+  }
+
+  /** Clear the old result mark so a retry does not stack two of them. */
+  function payResetMark() {
+    const mark = document.querySelector('.pay__result');
+    if (mark) mark.remove();
   }
 
   async function payWithMpesa(order, waMsg) {
-    const box = $('#checkoutMsg');
     const phone = $('#coMpesaPhone').value.trim() || order.customer.phone;
-    box.innerHTML = `<div class="notice notice--ok">Sending an M-Pesa request to <b>${esc(phone)}</b>…</div>`;
+    payResetMark();
+    openPaySheet(order, phone);
+    $('#checkoutMsg').innerHTML = '';
+
     try {
       const res = await fetch('/api/mpesa/stkpush', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId: order.id, payToken: order.payToken, phone })
       });
       const data = await res.json();
+
       if (!res.ok) {
-        box.innerHTML = `<div class="notice notice--error">${esc(data.error || 'Could not start M-Pesa.')}</div>`
-          + `<p style="font-size:.82rem;color:var(--muted);margin:.6rem 0">Order <b>${esc(order.code)}</b> is saved. You can still complete it on WhatsApp.</p>`
-          + waButton(waMsg);
+        payEnd({
+          kind: 'bad', order, waMsg,
+          heading: 'We could not start the payment',
+          line: esc(data.error || 'Safaricom did not accept the request.')
+            + ' Your order is saved, so nothing is lost.'
+        });
         return;
       }
-      box.innerHTML = `<div class="notice notice--ok"><b>Check your phone ♡</b><br>${esc(data.message || 'Enter your M-Pesa PIN to complete payment.')}</div>
-        <p class="pay-wait" id="payWait">Waiting for your payment…</p>`;
+
+      paySteps('prompt');
+      paySay('Pending approval',
+        'A payment request is on your phone. Enter your M-Pesa PIN to approve it.'
+        + (data.message ? `<br><small>${esc(data.message)}</small>` : ''));
+      startPayTimer(WAIT_SECONDS);
+      setTimeout(() => { if (payPolling) paySteps('pin'); }, 6000);
+      payPolling = true;
       pollPayment(order, waMsg, 0);
     } catch {
-      box.innerHTML = `<div class="notice notice--error">Network problem starting M-Pesa.</div>` + waButton(waMsg);
+      payEnd({
+        kind: 'bad', order, waMsg,
+        heading: 'Network problem',
+        line: 'We could not reach M-Pesa. Your order is saved, and we can send the prompt again.'
+      });
     }
   }
 
   function pollPayment(order, waMsg, tries) {
-    if (tries > 24) { // ~2 minutes
-      $('#checkoutMsg').innerHTML =
-        `<div class="notice notice--warn">We haven't seen the payment yet. If you completed it, we'll confirm on WhatsApp. Order <b>${esc(order.code)}</b>.</div>`
-        + waButton(waMsg);
+    if (!payPolling) return;
+    if (tries > WAIT_SECONDS / 5) {
+      payEnd({
+        kind: 'bad', order, waMsg,
+        heading: 'We have not seen the payment yet',
+        line: `Order <b>${esc(order.code)}</b> is saved. If you did pay, it can take a moment longer,
+               and we will confirm it with you.`
+      });
       return;
     }
     setTimeout(async () => {
+      if (!payPolling) return;
       try {
         const res = await fetch(`/api/orders/${order.id}/payment?token=${encodeURIComponent(order.payToken)}`);
         const data = await res.json();
+
         if (data.status === 'paid') {
           $('#checkoutForm').reset();
           state.checkout.quote = null;
           $('#deliveryEstimate').hidden = true;
-          $('#checkoutMsg').innerHTML =
-            `<div class="notice notice--ok"><b>Payment received ♡</b><br>Order <b>${esc(order.code)}</b> is paid${data.receipt ? `, M-Pesa ${esc(data.receipt)}` : ''}. We'll deliver shortly.</div>`
-            + receiptButton(order)
-            + waButton(waMsg, 'Send order details on WhatsApp');
+          payEnd({
+            kind: 'ok', order, receipt: data.receipt,
+            heading: 'Success',
+            line: `Thank you. Order <b>${esc(order.code)}</b> is paid and confirmed,
+                   and your receipt has been sent to your email.`,
+            extra: `<a class="btn btn--gold btn--block" href="#shop" data-pay-close>Keep shopping</a>`
+          });
           toast('Payment received ♡');
           refreshAccount();
           return;
         }
+
         if (data.status === 'failed') {
-          $('#checkoutMsg').innerHTML =
-            `<div class="notice notice--error">The payment didn't go through. Order <b>${esc(order.code)}</b> is saved, try the prompt again from WhatsApp and we'll help you finish it.</div>`
-            + waButton(waMsg);
+          payEnd({
+            kind: 'bad', order, waMsg,
+            heading: 'The payment did not go through',
+            line: `Nothing was charged. Order <b>${esc(order.code)}</b> is still saved,
+                   and we can send you a fresh prompt.`
+          });
           return;
         }
+
         pollPayment(order, waMsg, tries + 1);
       } catch {
         pollPayment(order, waMsg, tries + 1);
@@ -1030,6 +1185,11 @@
       }
     });
     $('#overlay').addEventListener('click', () => { closeDrawers(); closeModal(); });
+    $('#payClose').addEventListener('click', closePaySheet);
+    $('#paySheet').addEventListener('click', (e) => {
+      // the sheet closes on its own backdrop, and on the buttons that offer to
+      if (e.target.id === 'paySheet' || e.target.closest('[data-pay-close]')) closePaySheet();
+    });
     $('#checkoutForm').addEventListener('submit', submitOrder);
     $('#coLocation').addEventListener('input', () => { state.checkout.addressTouched = true; });
     $('#burger').addEventListener('click', () => $('#nav').classList.toggle('is-open'));
@@ -1041,7 +1201,13 @@
     $('#onSaleOnly').addEventListener('change', (e) => { state.filter.onSale = e.target.checked; render(); });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { closeDrawers(); closeModal(); }
+      if (e.key !== 'Escape') return;
+      // while a payment is still running the sheet stays put on purpose
+      if ($('#paySheet').classList.contains('is-open')) {
+        if (!$('#payClose').hidden) closePaySheet();
+        return;
+      }
+      closeDrawers(); closeModal();
     });
 
     document.addEventListener('click', (e) => {
@@ -1049,6 +1215,10 @@
         + '[data-remove],[data-close-cart],[data-close-modal],[data-madd],[data-minc],[data-mdec],[data-thumb]');
       if (!t) return;
       const d = t.dataset;
+
+      // A category tile is a real link for crawlers; for a shopper it filters
+      // here rather than loading the page it points at.
+      if (d.cat && t.tagName === 'A') e.preventDefault();
 
       if (d.add) { addToCart(d.add); return; }
       if (d.view) { openProduct(d.view); return; }
