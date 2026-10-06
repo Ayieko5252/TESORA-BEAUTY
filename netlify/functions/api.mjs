@@ -28,10 +28,14 @@ const CATEGORIES = [
   'Perfumes & Mists', 'Hair Care', 'Beauty Accessories', 'Gift Sets'
 ];
 
-const SECRET = process.env.TOKEN_SECRET || 'tessora-dev-secret';
 const ENV_PASSWORD = process.env.ADMIN_PASSWORD || '1234';
 const ADMIN_SESSION_MS = 8 * 60 * 60 * 1000;
 const CUSTOMER_SESSION_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Failed sign-ins allowed from one address before it is locked out, and for
+// how long. Stops a stolen or guessed password being found by brute force.
+const MAX_ATTEMPTS = 8;
+const LOCKOUT_MS = 15 * 60 * 1000;
 
 // Strong consistency matters here: with the default eventual reads, a request
 // right after a change can still see the old shop — and the seeding below would
@@ -85,12 +89,23 @@ async function load() {
     saved.customers ||= [];
     saved.activity ||= [];
     saved.counters ||= { order: 1000 };
+    // The key that signs session tokens. Created once, here, and written
+    // straight away: if each request invented its own, no token would survive
+    // to the next request.
+    if (!saved.settings.tokenSecret) {
+      saved.settings.tokenSecret = crypto.randomBytes(32).toString('hex');
+      await store.setJSON('db', saved);
+    }
     return saved;
   }
   // Genuinely empty, so this is the shop's first ever request: lay down the
   // starter products once. Written immediately so concurrent requests agree.
   const fresh = {
-    settings: { ...seed.settings, ...SETTINGS_ADDED },
+    settings: {
+      ...seed.settings,
+      ...SETTINGS_ADDED,
+      tokenSecret: crypto.randomBytes(32).toString('hex')
+    },
     products: seed.products.map((p) => ({ ...p })),
     orders: [],
     customers: [],
@@ -105,15 +120,90 @@ const persist = (db) => data().setJSON('db', db);
 
 /* ------------------------------------------------------------------ auth */
 
-const adminToken = () => issueToken(SECRET, 'admin', ADMIN_SESSION_MS);
-const customerToken = (id) => issueToken(SECRET, `c:${id}`, CUSTOMER_SESSION_MS);
+/**
+ * The key every session token is signed with.
+ *
+ * This used to fall back to a fixed string in the source. Once the code was
+ * published, that string was public — and anyone holding it could mint a valid
+ * admin token and walk into the panel without the password. So: use
+ * TOKEN_SECRET if it is set, otherwise generate a strong random key once and
+ * keep it in the shop's own database, where it is never published.
+ */
+function sessionSecret(db) {
+  const fromEnv = process.env.TOKEN_SECRET;
+  if (fromEnv) return fromEnv;
+  if (!db.settings.tokenSecret) {
+    db.settings.tokenSecret = crypto.randomBytes(32).toString('hex');
+  }
+  return db.settings.tokenSecret;
+}
 
-const isAuthed = (req) => readToken(SECRET, bearer(req.headers.get('authorization'))) === 'admin';
+/**
+ * A short fingerprint of the current admin password, carried inside the token.
+ *
+ * It means changing the password ends every session that was already open —
+ * otherwise someone signed in before the change would simply stay signed in,
+ * which defeats the point of changing it.
+ */
+const passwordStamp = (db) => crypto
+  .createHash('sha256')
+  .update(String(db.settings.adminPassword || ENV_PASSWORD))
+  .digest('hex')
+  .slice(0, 12);
+
+const adminToken = (db) => issueToken(sessionSecret(db), `admin:${passwordStamp(db)}`, ADMIN_SESSION_MS);
+
+const isAuthed = (req, db) =>
+  readToken(sessionSecret(db), bearer(req.headers.get('authorization'))) === `admin:${passwordStamp(db)}`;
+
+/** The same idea for a shopper: changing their password ends their sessions. */
+const customerStamp = (c) => crypto.createHash('sha256').update(String(c.password)).digest('hex').slice(0, 12);
+
+const customerToken = (db, c) =>
+  issueToken(sessionSecret(db), `c:${c.id}:${customerStamp(c)}`, CUSTOMER_SESSION_MS);
 
 function currentCustomer(req, db) {
-  const subject = readToken(SECRET, bearer(req.headers.get('authorization')));
+  const subject = readToken(sessionSecret(db), bearer(req.headers.get('authorization')));
   if (!subject.startsWith('c:')) return null;
-  return (db.customers || []).find((c) => c.id === subject.slice(2)) || null;
+  const [, id, stamp] = subject.split(':');
+  const customer = (db.customers || []).find((c) => c.id === id);
+  if (!customer || customerStamp(customer) !== stamp) return null;
+  return customer;
+}
+
+/* ------------------------------------------------------- brute-force guard */
+
+const RATE_KEY = 'login-attempts';
+
+/** Who is asking. Netlify puts the real client address in this header. */
+const clientIp = (req) =>
+  req.headers.get('x-nf-client-connection-ip')
+  || (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+  || 'unknown';
+
+async function attemptsFor(key) {
+  const all = (await data().get(RATE_KEY, { type: 'json' })) || {};
+  const now = Date.now();
+  // Drop anything past its window so the record cannot grow forever.
+  for (const k of Object.keys(all)) if (now - all[k].first > LOCKOUT_MS) delete all[k];
+  return { all, record: all[key] };
+}
+
+/** True when this address has failed too often and should wait. */
+async function isLockedOut(key) {
+  const { record } = await attemptsFor(key);
+  return Boolean(record && record.count >= MAX_ATTEMPTS && Date.now() - record.first <= LOCKOUT_MS);
+}
+
+async function noteAttempt(key, ok) {
+  const { all } = await attemptsFor(key);
+  if (ok) delete all[key];
+  else {
+    const rec = all[key] || { count: 0, first: Date.now() };
+    rec.count += 1;
+    all[key] = rec;
+  }
+  await data().setJSON(RATE_KEY, all);
 }
 
 /** The password to check against: the saved one, or the environment fallback. */
@@ -161,7 +251,7 @@ const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(
 /** Settings the storefront may see. Keys, passwords and payment secrets never leave. */
 function publicSettings(s) {
   const {
-    adminPassword, mpesaConsumerKey, mpesaConsumerSecret, mpesaPasskey,
+    adminPassword, tokenSecret, mpesaConsumerKey, mpesaConsumerSecret, mpesaPasskey,
     mpesaCallbackUrl, emailApiKey, reportEmail, ...rest
   } = s;
   return {
@@ -173,7 +263,7 @@ function publicSettings(s) {
 
 /** Settings the admin panel may see — secrets shown only as "is it set?". */
 function adminSettings(s) {
-  const { adminPassword, mpesaConsumerSecret, mpesaPasskey, emailApiKey, ...rest } = s;
+  const { adminPassword, tokenSecret, mpesaConsumerSecret, mpesaPasskey, emailApiKey, ...rest } = s;
   return {
     ...rest,
     mpesaConsumerSecretSet: Boolean(mpesaConsumerSecret),
@@ -382,19 +472,28 @@ export default async function handler(req) {
       type: 'account.created', actor: 'customer',
       target: name, targetId: customer.id, summary: `${name} (${email}) created an account`
     });
+    const newToken = customerToken(db, customer);
     await persist(db);
-    return json(201, { token: customerToken(customer.id), customer: publicCustomer(customer) });
+    return json(201, { token: newToken, customer: publicCustomer(customer) });
   }
 
   if (seg[0] === 'account' && seg[1] === 'login' && method === 'POST') {
+    const rateKey = `customer:${clientIp(req)}`;
+    if (await isLockedOut(rateKey)) {
+      return json(429, { error: 'Too many attempts. Please try again in 15 minutes.' });
+    }
     const email = normalizeEmail(body.email);
     const customer = db.customers.find((c) => c.email === email);
     // Same message either way, so the form cannot be used to discover who has
     // an account here.
     if (!customer || !verifyPassword(str(body.password, 200), customer.password)) {
+      await noteAttempt(rateKey, false);
       return json(401, { error: 'That email and password do not match.' });
     }
-    return json(200, { token: customerToken(customer.id), customer: publicCustomer(customer) });
+    await noteAttempt(rateKey, true);
+    const token = customerToken(db, customer);
+    await persist(db);
+    return json(200, { token, customer: publicCustomer(customer) });
   }
 
   if (seg[0] === 'account' && seg[1] === 'me') {
@@ -550,7 +649,7 @@ export default async function handler(req) {
     const order = db.orders.find((o) => o.id === seg[1]);
     const token = url.searchParams.get('token') || '';
     const me = currentCustomer(req, db);
-    const allowed = order && (order.payToken === token || (me && order.customerId === me.id) || isAuthed(req));
+    const allowed = order && (order.payToken === token || (me && order.customerId === me.id) || isAuthed(req, db));
     if (!allowed) return json(404, { error: 'Receipt not found.' });
 
     if (url.searchParams.get('format') === 'json') return json(200, { order, settings: publicSettings(settings) });
@@ -632,12 +731,38 @@ export default async function handler(req) {
       const order = db.orders.find((o) => o.payment?.checkoutRequestId === cb.checkoutRequestId);
       if (order) {
         if (cb.resultCode === '0') {
+          // Anyone can post to this address — Safaricom has to be able to reach
+          // it — and the checkout id is handed to the shopper when the prompt is
+          // sent. So a "paid" callback is treated as a claim, not as proof:
+          // confirm it with Safaricom, and check the amount is the full total,
+          // before any order is marked paid.
+          let confirmed = false;
+          try {
+            const q = await stkQuery(settings, cb.checkoutRequestId);
+            confirmed = Boolean(q && String(q.resultCode) === '0');
+          } catch {
+            confirmed = false;   // could not reach Daraja: do not take its word
+          }
+          const amountOk = !cb.amount || Math.round(num(cb.amount)) >= Math.round(num(order.total));
+
+          if (!confirmed || !amountOk) {
+            log.record(db, {
+              type: 'payment.failed', actor: 'system', target: order.code, targetId: order.id,
+              summary: !amountOk
+                ? `A payment callback claimed ${cb.amount} for an order of ${order.total} — rejected`
+                : 'A payment callback could not be confirmed with Safaricom — rejected'
+            });
+            await persist(db);
+            // Still acknowledged below, so Safaricom stops retrying.
+            return json(200, { ResultCode: 0, ResultDesc: 'Accepted' });
+          }
+
           order.payment.status = 'paid';
           order.payment.receipt = cb.receipt;
           order.payment.paidAt = new Date().toISOString();
           log.record(db, {
             type: 'payment.paid', actor: 'system', target: order.code, targetId: order.id,
-            summary: `Paid ${cb.amount} by M-Pesa · ${cb.receipt}`
+            summary: `Paid ${cb.amount} by M-Pesa · ${cb.receipt} (confirmed with Safaricom)`
           });
         } else {
           order.payment.status = 'failed';
@@ -661,24 +786,33 @@ export default async function handler(req) {
 
   /* ---- signing in as the shop owner ---- */
   if (seg[0] === 'login' && method === 'POST') {
+    const rateKey = `admin:${clientIp(req)}`;
+    if (await isLockedOut(rateKey)) {
+      return json(429, { error: 'Too many attempts. Please try again in 15 minutes.' });
+    }
     const given = str(body.password, 200);
     if (!checkAdminPassword(db, given)) {
+      await noteAttempt(rateKey, false);
       log.record(db, { type: 'security.denied', actor: 'system', summary: 'Someone tried the wrong admin password' });
       await persist(db);
       return json(401, { error: 'Incorrect password' });
     }
+    await noteAttempt(rateKey, true);
     // First sign-in after this update: save the environment password as a hash
     // so it can be changed from the panel from now on.
     if (!settings.adminPassword) {
       settings.adminPassword = hashPassword(given);
       settings.passwordIsDefault = given === '1234';
-      await persist(db);
     }
-    return json(200, { token: adminToken(), passwordIsDefault: Boolean(settings.passwordIsDefault) });
+    // Mint the token before persisting: issuing it may create the signing key,
+    // and that key has to be saved or the very next request rejects the token.
+    const token = adminToken(db);
+    await persist(db);
+    return json(200, { token, passwordIsDefault: Boolean(settings.passwordIsDefault) });
   }
 
   /* ---- everything past here needs a signed-in admin ---- */
-  if (!isAuthed(req)) return json(401, { error: 'Session expired. Please sign in again.' });
+  if (!isAuthed(req, db)) return json(401, { error: 'Session expired. Please sign in again.' });
 
   if (seg[0] === 'logout' && method === 'POST') return json(200, { ok: true });
 
@@ -789,7 +923,7 @@ export default async function handler(req) {
     }
     if (what === 'backup') {
       // The whole database, minus the secrets that must never leave the server.
-      const { adminPassword, mpesaConsumerSecret, mpesaPasskey, emailApiKey, ...safeSettings } = settings;
+      const { adminPassword, tokenSecret, mpesaConsumerSecret, mpesaPasskey, emailApiKey, ...safeSettings } = settings;
       const backup = {
         exportedAt: new Date().toISOString(),
         note: 'Tessora Beauty backup. Passwords and payment secrets are deliberately excluded.',
@@ -1032,8 +1166,12 @@ export default async function handler(req) {
       body: mailer.activityHtml(entry, settings)
     });
 
-    // The old token stays valid for this session; signing out will need the new one.
-    return json(200, { ok: true });
+    // Tokens carry a fingerprint of the password, so changing it ends every
+    // session that was already open — including this one. Hand back a fresh
+    // token so whoever made the change stays signed in, and everyone else is
+    // signed out. The panel swaps it in; a client that ignores it just signs in
+    // again, which is the safe outcome either way.
+    return json(200, { ok: true, token: adminToken(db) });
   }
 
   return json(404, { error: 'Unknown endpoint' });

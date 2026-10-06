@@ -590,12 +590,20 @@
       return;
     }
     try {
-      await api('/admin/password', {
+      const res = await api('/admin/password', {
         method: 'PUT',
         body: { currentPassword: $('#pwCurrent').value, newPassword: next }
       });
+      // Changing the password ends every session that was open, including this
+      // one. The server hands back a replacement so whoever made the change
+      // stays signed in while everyone else is signed out.
+      if (res.token) {
+        state.token = res.token;
+        sessionStorage.setItem(TOKEN_KEY, res.token);
+      }
       $('#passwordForm').reset();
-      $('#passwordMsg').innerHTML = '<div class="notice notice--ok">Password changed successfully.</div>';
+      $('#passwordMsg').innerHTML =
+        '<div class="notice notice--ok">Password changed. Any other device signed in to this panel has been signed out.</div>';
       $('#globalNotice').innerHTML = '';
       toast('Password updated');
     } catch (err) {
