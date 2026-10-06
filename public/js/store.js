@@ -188,7 +188,7 @@
       : `<div class="card__ph">${esc(p.name.charAt(0).toUpperCase())}</div>`;
 
     return `
-      <article class="card${out ? ' is-out' : ''}" data-id="${p.id}">
+      <article class="card${out ? ' is-out' : ''}" data-id="${p.id}" data-view="${p.id}">
         <div class="card__media" data-view="${p.id}">
           ${img}
           <div class="badges">

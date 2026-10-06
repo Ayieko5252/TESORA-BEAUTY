@@ -786,28 +786,52 @@ button:focus-visible, a:focus-visible, .select:focus-visible {
   .grid { gap: .7rem; }
 }
 
-/* Four products per row on a phone.
-   At 390px that is about 85px a card, so everything inside has to shrink with
-   it: a square picture, smaller type, a tighter body and a compact button.
-   The category and brand lines are dropped at this size because they are the
-   least useful of the labels and the first to wrap badly. */
+/* Four products per row on a phone, arranged to still feel like a boutique.
+   At 390px a card is about 85px, too narrow for a row of labels and a full
+   width button. So the tile carries only what sells the product: the picture,
+   the name, the price. The add button becomes a small disc resting on the
+   corner of the picture, and tapping anywhere else opens the product itself,
+   where the full button and the quantity live. */
 @media (max-width: 720px) {
-  .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+  .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; }
+
+  .card { position: relative; border-radius: 14px; }
   .card__media { aspect-ratio: 1 / 1; }
-  .card__body { padding: .5rem .45rem .6rem; gap: .25rem; }
-  .card__cat, .card__brand { display: none; }
+
+  /* the labels that cannot earn their space at this width */
+  .card__cat, .card__brand, .stock { display: none; }
+  .badges .badge--star, .badges .badge--new { display: none; }
+  .badge { font-size: .5rem; padding: .16rem .34rem; letter-spacing: .04em; }
+
+  .card__body { padding: .5rem .45rem .6rem; gap: .2rem; }
   .card__title {
-    font-size: .76rem; line-height: 1.25;
-    /* a long name would otherwise wrap to four lines in an 85px column */
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: .74rem; line-height: 1.3; font-weight: 600;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
-  .card__price { font-size: .82rem; }
-  .card__price .was, .card__save { font-size: .66rem; }
-  .stock { font-size: .64rem; gap: .25rem; }
-  .stock::before { width: 5px; height: 5px; }
-  .card .btn {
-    padding: .5rem .3rem; font-size: .6rem; letter-spacing: .06em; min-height: 36px;
+  .price { gap: .25rem; flex-wrap: wrap; }
+  .price__now { font-size: .82rem; }
+  .price__was { font-size: .62rem; }
+  .price__off { display: none; }
+
+  /* The add button sits on the picture. A percentage top margin resolves
+     against the card width, and the picture is square, so this lands it on
+     the bottom corner of the image at any screen size. */
+  .card__foot {
+    position: absolute; top: 0; right: .3rem; width: 30px;
+    margin-top: calc(100% - 36px); z-index: 2;
   }
-  .badge, .card__badges span { font-size: .55rem; padding: .18rem .35rem; }
+  .card__foot .btn {
+    width: 30px; height: 30px; min-height: 0; padding: 0; border-radius: 50%;
+    font-size: 0; box-shadow: 0 4px 12px rgba(18, 16, 15, .28);
+  }
+  .card__foot .btn::after { content: "+"; font-size: 1.05rem; line-height: 1; }
+  .card__foot .btn:disabled::after { content: "\00d7"; }
+}
+
+/* Tablets sit between the two designs. Without this they fall back to the
+   desktop grid, which at 768px fits only two very tall cards. Three across
+   keeps the full card, button and all, at a sensible size. */
+@media (min-width: 721px) and (max-width: 1024px) {
+  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .card__title { font-size: .95rem; }
 }
