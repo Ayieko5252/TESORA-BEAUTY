@@ -29,7 +29,7 @@
   };
 
   /* ------------------------------------------------------------ helpers */
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 
@@ -1067,8 +1067,8 @@
         return;
       }
 
-      if (d.inc) { const l = state.cart.find((x) => x.id === d.inc); setQty(d.inc, (l?.qty || 0) + 1); return; }
-      if (d.dec) { const l = state.cart.find((x) => x.id === d.dec); setQty(d.dec, (l?.qty || 1) - 1); return; }
+      if (d.inc) { const l = state.cart.find((x) => x.id === d.inc); setQty(d.inc, ((l && l.qty) || 0) + 1); return; }
+      if (d.dec) { const l = state.cart.find((x) => x.id === d.dec); setQty(d.dec, ((l && l.qty) || 1) - 1); return; }
       if (d.remove) { setQty(d.remove, 0); return; }
 
       if (d.thumb) {

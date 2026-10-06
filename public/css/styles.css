@@ -33,7 +33,12 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(18, 16, 15, .06);
+}
 
 body {
   margin: 0;
@@ -70,9 +75,9 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 
 /* --------------------------------------------------------------- header */
 .header {
-  position: sticky; top: 0; z-index: 60;
+  position: -webkit-sticky; position: sticky; top: 0; z-index: 60;
   background: rgba(251, 247, 242, .92);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
 .header__inner {
@@ -308,8 +313,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 
 /* ------------------------------------------------------------- overlays */
 .overlay {
-  position: fixed; inset: 0; z-index: 90; background: rgba(18, 16, 15, .55);
-  backdrop-filter: blur(3px); opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s;
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 90; background: rgba(18, 16, 15, .55);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s;
 }
 .overlay.is-open { opacity: 1; visibility: visible; }
 
@@ -379,7 +384,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 
 /* ---------------------------------------------------------------- modal */
 .modal {
-  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 100; display: grid; place-items: center;
   padding: 1.5rem; pointer-events: none; opacity: 0; transition: opacity .22s;
 }
 .modal.is-open { opacity: 1; pointer-events: auto; }
@@ -462,7 +467,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 @media (max-width: 720px) {
   .wrap { width: min(1240px, 100% - 1.6rem); }
   .nav {
-    position: fixed; inset: var(--header-h) 0 auto; flex-direction: column; gap: 0;
+    position: fixed; top: var(--header-h); right: 0; bottom: auto; left: 0; flex-direction: column; gap: 0;
     background: var(--ivory); border-bottom: 1px solid var(--line);
     padding: .5rem 1.2rem 1.2rem; transform: translateY(-130%);
     transition: transform .28s; z-index: 55;
@@ -774,58 +779,60 @@ button:focus-visible, a:focus-visible, .select:focus-visible {
 }
 #googleButton { display: flex; justify-content: center; }
 
-/* Product pictures on a phone.
-   A full square card means barely one and a half products fit on screen, so
-   the picture is shortened to a medium, landscape shape. Two products then sit
-   side by side with their price and button visible without scrolling. */
+/* ======================================================================
+   The phone product card
+   Two across, with the whole card intact: picture, brand, name, price,
+   stock and a real "Add to bag" button. At 390px that gives each card
+   about 170px, which is room enough for the type to breathe, and four
+   products sit in view at a glance.
+   ====================================================================== */
 @media (max-width: 720px) {
-  .card__media { aspect-ratio: 4 / 3; }
-}
-@media (max-width: 430px) {
-  .card__media { aspect-ratio: 5 / 4; }
-  .grid { gap: .7rem; }
-}
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
 
-/* Four products per row on a phone, arranged to still feel like a boutique.
-   At 390px a card is about 85px, too narrow for a row of labels and a full
-   width button. So the tile carries only what sells the product: the picture,
-   the name, the price. The add button becomes a small disc resting on the
-   corner of the picture, and tapping anywhere else opens the product itself,
-   where the full button and the quantity live. */
-@media (max-width: 720px) {
-  .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; }
-
-  .card { position: relative; border-radius: 14px; }
+  .card { border-radius: 16px; }
   .card__media { aspect-ratio: 1 / 1; }
 
-  /* the labels that cannot earn their space at this width */
-  .card__cat, .card__brand, .stock { display: none; }
-  .badges .badge--star, .badges .badge--new { display: none; }
-  .badge { font-size: .5rem; padding: .16rem .34rem; letter-spacing: .04em; }
+  /* the picture only has room for the badge that sells the product */
+  .badges { top: .5rem; left: .5rem; gap: .25rem; }
+  .badge { font-size: .56rem; padding: .2rem .45rem; letter-spacing: .05em; }
+  .badges .badge--star { display: none; }
 
-  .card__body { padding: .5rem .45rem .6rem; gap: .2rem; }
+  .card__body { padding: .7rem .7rem .8rem; gap: .28rem; }
+
+  /* the category repeats the filter the shopper just used; the brand is
+     the line that carries weight, so it moves above the name in small caps */
+  .card__cat { display: none; }
+  .card__brand {
+    order: -1; margin-top: 0; font-size: .58rem; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--blush-deep);
+  }
   .card__title {
-    font-size: .74rem; line-height: 1.3; font-weight: 600;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    font-size: .88rem; line-height: 1.32; min-height: 2.32em;
+    display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+    -webkit-line-clamp: 2; line-clamp: 2;
   }
-  .price { gap: .25rem; flex-wrap: wrap; }
-  .price__now { font-size: .82rem; }
-  .price__was { font-size: .62rem; }
-  .price__off { display: none; }
+  .price { gap: .35rem; }
+  .price__now { font-size: .98rem; }
+  .price__was { font-size: .7rem; }
+  .price__off { font-size: .62rem; }
+  .stock { font-size: .68rem; }
+  .stock::before { width: 6px; height: 6px; }
 
-  /* The add button sits on the picture. A percentage top margin resolves
-     against the card width, and the picture is square, so this lands it on
-     the bottom corner of the image at any screen size. */
-  .card__foot {
-    position: absolute; top: 0; right: .3rem; width: 30px;
-    margin-top: calc(100% - 36px); z-index: 2;
-  }
+  .card__foot { padding-top: .45rem; }
   .card__foot .btn {
-    width: 30px; height: 30px; min-height: 0; padding: 0; border-radius: 50%;
-    font-size: 0; box-shadow: 0 4px 12px rgba(18, 16, 15, .28);
+    width: 100%; min-height: 38px; padding: .5rem .5rem;
+    font-size: .72rem; letter-spacing: .07em;
   }
-  .card__foot .btn::after { content: "+"; font-size: 1.05rem; line-height: 1; }
-  .card__foot .btn:disabled::after { content: "\00d7"; }
+}
+
+/* The narrow phones still in daily use here (iPhone SE, Galaxy A0x) leave
+   about 150px a card, so the type steps down one more notch. */
+@media (max-width: 380px) {
+  .grid { gap: .6rem; }
+  .card__body { padding: .6rem .55rem .7rem; }
+  .card__title { font-size: .82rem; }
+  .price__now { font-size: .92rem; }
+  .card__foot .btn { font-size: .66rem; letter-spacing: .04em; }
 }
 
 /* Tablets sit between the two designs. Without this they fall back to the
@@ -834,4 +841,23 @@ button:focus-visible, a:focus-visible, .select:focus-visible {
 @media (min-width: 721px) and (max-width: 1024px) {
   .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
   .card__title { font-size: .95rem; }
+}
+
+/* ======================================================================
+   Older browsers
+   Safari before 15 and the Android browsers that ship on budget phones
+   here do not know aspect-ratio. The padding trick reserves the same
+   square, so a product picture is never a collapsed sliver.
+   ====================================================================== */
+@supports not (aspect-ratio: 1 / 1) {
+  .card__media { height: 0; padding-bottom: 100%; }
+  .card__media > * { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+}
+
+/* Safari before 14.1 ignores gap in a flex row, which collapses the price
+   line and the badges into each other. Margins hold them apart instead. */
+@supports not (gap: 1px) {
+  .price > * + * { margin-left: .5rem; }
+  .badges > * + * { margin-top: .35rem; }
+  .stock::before { margin-right: .4rem; }
 }
