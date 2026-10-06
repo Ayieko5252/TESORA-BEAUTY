@@ -773,3 +773,15 @@ button:focus-visible, a:focus-visible, .select:focus-visible {
   content: ""; flex: 1; height: 1px; background: var(--line);
 }
 #googleButton { display: flex; justify-content: center; }
+
+/* Product pictures on a phone.
+   A full square card means barely one and a half products fit on screen, so
+   the picture is shortened to a medium, landscape shape. Two products then sit
+   side by side with their price and button visible without scrolling. */
+@media (max-width: 720px) {
+  .card__media { aspect-ratio: 4 / 3; }
+}
+@media (max-width: 430px) {
+  .card__media { aspect-ratio: 5 / 4; }
+  .grid { gap: .7rem; }
+}

@@ -141,7 +141,8 @@
 
   function applyBranding() {
     const s = state.settings;
-    document.title = `${s.storeName || 'Tessora Beauty'}, ${s.tagline || 'Your Beauty. Your Aura.'}`;
+    // Matches the title in the page source: a divider, not a comma.
+    document.title = `${s.storeName || 'Tessora Beauty'} | ${s.tagline || 'Your Beauty. Your Aura.'}`;
     $('#announce').textContent = s.announcement || '';
     $('#announce').hidden = !s.announcement;
     $('#brandName').textContent = (s.storeName || 'Tessora').split(' ')[0];
