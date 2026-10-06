@@ -27,6 +27,16 @@
   to = "/receipt.html"
   status = 200
 
+# The shop answers on two addresses: its own domain and the netlify.app one it
+# was built on. Two addresses serving the same shop splits it in search, so the
+# old one hands every visitor and every crawler to the real domain. Deploy
+# previews have their own hostnames and are untouched.
+[[redirects]]
+  from = "https://tessora-beauty.netlify.app/*"
+  to = "https://tessorabeauty.co.ke/:splat"
+  status = 301
+  force = true
+
 # Every product has an address of its own, rendered on the server so a search
 # engine has a real page to index. The shop in the browser is unchanged.
 [[redirects]]
