@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The shop is a single page: the sections (shop, categories, offers, about) are
+  anchors on it, not separate addresses, so there is one URL to list.
+  Update the address here if the shop moves to its own domain.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://tessora-beauty.netlify.app/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found · Tessora Beauty</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ivory: #fbf7f2; --ink: #12100f; --gold: #c9a227; --gold-light: #e8cd7a;
+    --rose: #b8536c; --muted: #7b716c; --line: #ece3dc;
+    --serif: "Playfair Display", Georgia, serif;
+    --sans: Jost, "Century Gothic", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; min-height: 100dvh;
+    display: grid; place-items: center; padding: 2rem 1.2rem;
+    background: var(--ivory); color: var(--ink); font-family: var(--sans); text-align: center;
+  }
+  .mark { width: 74px; margin: 0 auto 1.4rem; }
+  .code {
+    font-size: .72rem; letter-spacing: .26em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: .6rem;
+  }
+  h1 { font-family: var(--serif); font-size: clamp(1.6rem, 6vw, 2.3rem); margin: 0 0 .6rem; }
+  h1 em {
+    font-style: normal;
+    background: linear-gradient(100deg, var(--gold), var(--gold-light) 55%, var(--gold));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  p { color: var(--muted); max-width: 42ch; margin: 0 auto 1.8rem; line-height: 1.65; font-size: .95rem; }
+  .btn {
+    display: inline-block; padding: .85rem 1.8rem; border-radius: 999px;
+    font-size: .8rem; letter-spacing: .15em; text-transform: uppercase;
+    text-decoration: none; color: #191512;
+    background: linear-gradient(120deg, var(--gold), var(--gold-light) 55%, var(--gold));
+    box-shadow: 0 10px 26px rgba(201, 162, 39, .32);
+  }
+  .alt { display: block; margin-top: 1.2rem; font-size: .84rem; color: var(--rose); text-decoration: none; }
+  .alt:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <main>
+    <img class="mark" src="/assets/logo.svg" alt="Tessora Beauty">
+    <div class="code">Error 404</div>
+    <h1>This page has <em>wandered off</em></h1>
+    <p>
+      The link may be out of date, or have a stray “www.” in front of it.
+      Everything is still here — head back to the shop and carry on.
+    </p>
+    <a class="btn" href="/">Back to the shop</a>
+    <a class="alt" href="/#shop">Browse all products</a>
+  </main>
+</body>
+</html>

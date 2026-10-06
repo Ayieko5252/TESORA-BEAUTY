@@ -27,13 +27,64 @@
   to = "/receipt.html"
   status = 200
 
+# ---------------------------------------------------------------- security
 [[headers]]
   for = "/*"
   [headers.values]
+    # Don't let a browser second-guess a file's type.
     X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "same-origin"
+    # Send the page address to other sites, never the query string — order
+    # receipts carry a token in theirs.
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Once a browser has seen the shop over HTTPS, never let it try plain HTTP.
+    # No includeSubDomains: www.<site>.netlify.app has no valid certificate, and
+    # this must not make that failure permanent. No preload either — that is a
+    # commitment the whole netlify.app domain would have to make, not us.
+    Strict-Transport-Security = "max-age=31536000"
+    # The shop has no need of these, so turn them off site-wide.
+    Permissions-Policy = "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)"
+    # Content Security Policy. 'unsafe-inline' is unavoidable for now: the
+    # receipt and the financial statements are rendered with inline styles and
+    # an inline print button. Everything else is pinned to this site and the
+    # two Google services the shop genuinely uses — fonts, and the delivery map.
+    # Google's hosts are wildcarded because the delivery map pulls its code,
+    # tiles and workers from several of them; pinning one host would break
+    # checkout the day the Maps key is switched on.
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' blob: https://*.googleapis.com https://*.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://*.googleapis.com https://*.gstatic.com; frame-src 'self' https://*.google.com; upgrade-insecure-requests"
 
+# Keep the admin panel out of search results.
 [[headers]]
   for = "/admin"
   [headers.values]
-    X-Robots-Tag = "noindex"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# A receipt is private to whoever holds its link.
+[[headers]]
+  for = "/receipt"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
+
+# ----------------------------------------------------------------- caching
+# Product artwork and the logo are stable, so let browsers keep them.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, stale-while-revalidate=86400"
+
+# The stylesheets and scripts are not fingerprinted, so they must be revalidated
+# on every visit — otherwise a shop update would not reach returning customers.
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

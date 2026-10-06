@@ -1,0 +1,14 @@
+# Tessora Beauty
+# The shop itself is open to search engines. The admin panel, the API and
+# customer receipts are not — a receipt link carries a private token.
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /receipt
+Disallow: /api/
+Disallow: /order-alert
+Disallow: /order-alert.html
+
+Sitemap: https://tessora-beauty.netlify.app/sitemap.xml
