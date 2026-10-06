@@ -71,19 +71,35 @@ to look at and no product to show. Now:
 - `tessorabeauty.co.ke/sitemap.xml` lists all of them and updates itself the
   moment you add a product
 
-**Why you did not find the shop yet:** the domain is new. Google has not been
-told it exists. Nothing you do makes that instant, but this is what starts it.
+**Why you did not find the shop yet:** the domain is new. No search engine had
+been told it exists. Nothing makes that instant.
 
-### Do this once
+### Already done for you
+- **All 94 addresses submitted to IndexNow**, which is how you tell a search
+  engine about a page without an account. Bing, Yandex, Seznam and Naver take
+  part, and Ecosia and DuckDuckGo sit downstream of Bing. It was accepted.
+  Re-run it after adding products with `node scripts/submit-indexnow.mjs`.
+- **The old netlify.app address now redirects here.** Two addresses serving one
+  shop splits it in search; now there is one.
+- `www.` and plain `http://` already redirect to the real address, and every
+  page names itself as the original, so nothing competes with itself.
+
+### Only you can do this: Google
+Google does not accept IndexNow. It only takes submissions through Search
+Console, which needs your own Google sign-in. It is five minutes.
+
 1. Go to <https://search.google.com/search-console> and sign in.
 2. Add a property, choose **URL prefix**, enter `https://tessorabeauty.co.ke`.
-3. Verify. The easiest route is the **HTML tag** method: it gives you a line of
-   text. Send it to me and I will put it in the site and deploy it.
+3. Choose the **HTML tag** method. It shows you a line like
+   `<meta name="google-site-verification" content="...">`.
+   **Send me that line** and I will put it in the site and deploy it, then you
+   press Verify.
 4. Once verified, open **Sitemaps** and submit `sitemap.xml`.
 5. Open **URL inspection**, paste `https://tessorabeauty.co.ke/`, and press
    **Request indexing**. Do the same for two or three product pages.
 
-Then do the same at <https://www.bing.com/webmasters>.
+Worth doing the same at <https://www.bing.com/webmasters> even though IndexNow
+already reaches Bing: the account shows you what Bing thinks of the shop.
 
 ### What to expect
 - Your own name, "Tessora Beauty": usually a few days to two weeks.
@@ -99,29 +115,64 @@ Then do the same at <https://www.bing.com/webmasters>.
 
 ---
 
-## 3. Customer care and orders email
+## 3. Customer care and orders email, free
 
-The shop already sends the customer their confirmation and their receipt. It
-sends from an **orders** address and replies go to a **customer care** address.
-You need to create those two mailboxes.
+The shop already writes the customer their confirmation and their receipt. It
+sends from an **orders** address, and replies go to a **customer care** address.
+Those two addresses need somewhere to live.
 
-### At HostPinnacle
-1. Sign in, open **cPanel**, then **Email Accounts**.
-2. Create `care@tessorabeauty.co.ke`.
-3. Create `orders@tessorabeauty.co.ke`.
-4. Choose the passwords yourself and keep them. Do not send them to anyone.
+**The sending side is already free.** The shop sends through Resend, whose free
+tier is 3,000 emails a month. At a hundred orders a month you would use a few
+hundred. You never need to pay for that.
 
-You read them in cPanel's webmail, or add them to Gmail on your phone.
+**The receiving side** is the only open question, and there are two free ways.
+Check cPanel first: if your HostPinnacle plan includes hosting, **Email
+Accounts** is already there and free, and you can skip straight to
+"So the email is not treated as spam". If you only bought the domain, it is not,
+so pick one of these.
+
+### Free option A, Zoho Mail. Real mailboxes.
+The better one. You get proper inboxes you sign into, send and receive from,
+on your phone or the web.
+
+- Free forever, 1 domain, up to 5 users, 5GB each. No card.
+- The catch: webmail and the Zoho app only. No IMAP or POP, so you cannot pull
+  it into Gmail or Outlook. In practice you use the Zoho app, which is fine.
+
+1. Sign up at <https://www.zoho.com/mail/> and choose the **Forever Free** plan.
+2. Add `tessorabeauty.co.ke` and verify it with the TXT record it gives you.
+3. Create `care@tessorabeauty.co.ke` and `orders@tessorabeauty.co.ke`.
+4. Add the **MX records** Zoho gives you, in HostPinnacle cPanel, **Zone
+   Editor**. MX is what makes mail arrive.
+
+### Free option B, ImprovMX. Forwarding only.
+Quicker, but it only receives. Mail to `care@` lands in your Gmail.
+
+- Free, 1 domain, 25 addresses, 500 forwards a day.
+- Set up at <https://improvmx.com>: add the domain, then add the two **MX
+  records** it gives you in cPanel, **Zone Editor**.
+- Forward both `care@` and `orders@` to your Gmail.
+- To **reply as** `care@` from Gmail: Gmail, Settings, Accounts, **Add another
+  email address**, then use Resend's SMTP, `smtp.resend.com`, port 587,
+  username `resend`, password your Resend API key.
 
 ### So the email is not treated as spam
-Resend has to be allowed to send as your domain.
+Whichever you chose, Resend still has to be allowed to send as your domain.
+This part is free and is the difference between landing in the inbox and
+landing in spam.
+
 1. In Resend, **Domains**, add `tessorabeauty.co.ke`.
-2. It shows you three records to add. In HostPinnacle cPanel, **Zone Editor**,
-   add them exactly as given. They look like this:
+2. It shows you records to add. In HostPinnacle cPanel, **Zone Editor**, add
+   them exactly as given:
    - a **TXT** record for SPF
    - a **TXT** record for DKIM
    - a **TXT** record for DMARC
 3. Back in Resend, press verify. It can take up to an hour.
+
+**One thing to watch.** A domain may have only **one** SPF record. If Zoho or
+ImprovMX already added one, do not add a second: merge them into one line.
+Two SPF records is the single most common reason business email goes to spam.
+If you are unsure, send me both lines and I will write the merged one for you.
 
 ### Then in the shop
 Admin, Settings, Reports:
