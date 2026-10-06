@@ -64,6 +64,10 @@ const SETTINGS_ADDED = {
   mpesaConsumerKey: '',
   mpesaConsumerSecret: '',
   mpesaCallbackUrl: '',
+  // Sign in with Google. The client id is public by design — it identifies the
+  // shop to Google and is safe in the browser. There is no client secret: the
+  // browser hands us a signed token and the server checks it with Google.
+  googleClientId: '',
   // reports and alerts
   reportEmail: '',
   emailApiKey: '',
@@ -477,6 +481,65 @@ export default async function handler(req) {
     return json(201, { token: newToken, customer: publicCustomer(customer) });
   }
 
+  /* ---- signing in with Google ---- */
+  if (seg[0] === 'account' && seg[1] === 'google' && method === 'POST') {
+    const clientId = settings.googleClientId;
+    if (!clientId) return json(400, { error: 'Signing in with Google is not switched on for this shop.' });
+
+    const credential = str(body.credential, 4000);
+    if (!credential) return json(400, { error: 'Google did not send a sign-in token.' });
+
+    // The browser hands us a token signed by Google. Ask Google whether it is
+    // genuine rather than trusting what arrived, and make sure it was issued
+    // for THIS shop — a token minted for another site must not open an account
+    // here.
+    let info;
+    try {
+      const res = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      info = res.ok ? await res.json() : null;
+    } catch {
+      info = null;
+    }
+    if (!info || !info.sub) return json(401, { error: 'Could not verify that Google sign-in. Please try again.' });
+    if (info.aud !== clientId) return json(401, { error: 'That Google sign-in was not issued for this shop.' });
+    if (String(info.email_verified) !== 'true') {
+      return json(401, { error: 'That Google account has no verified email address.' });
+    }
+    if (Number(info.exp) * 1000 < Date.now()) return json(401, { error: 'That Google sign-in has expired. Please try again.' });
+
+    const email = normalizeEmail(info.email);
+    if (!isEmail(email)) return json(401, { error: 'Google did not provide an email address.' });
+
+    let customer = db.customers.find((c) => c.email === email);
+    if (customer) {
+      // An account already exists for this address — link it rather than
+      // making a second one, so their order history stays in one place.
+      if (!customer.googleId) customer.googleId = info.sub;
+    } else {
+      customer = {
+        id: newId(),
+        name: str(info.name || email.split('@')[0], 80),
+        email,
+        phone: '',                 // Google does not share one; asked for at checkout
+        password: '',              // no password: this account signs in with Google
+        googleId: info.sub,
+        address: { location: '', lat: null, lng: null },
+        createdAt: new Date().toISOString()
+      };
+      db.customers.push(customer);
+      log.record(db, {
+        type: 'account.created', actor: 'customer', target: customer.name, targetId: customer.id,
+        summary: `${customer.name} (${email}) signed up with Google`
+      });
+    }
+    const token = customerToken(db, customer);
+    await persist(db);
+    return json(200, { token, customer: publicCustomer(customer), needsPhone: !customer.phone });
+  }
+
   if (seg[0] === 'account' && seg[1] === 'login' && method === 'POST') {
     const rateKey = `customer:${clientIp(req)}`;
     if (await isLockedOut(rateKey)) {
@@ -522,7 +585,9 @@ export default async function handler(req) {
       if (body.password) {
         const problem = passwordProblem(body.password);
         if (problem) return json(400, { error: problem });
-        if (!verifyPassword(str(body.currentPassword, 200), me.password)) {
+        // An account created with Google has no password yet, so there is no
+        // old one to prove. Everyone else must prove the current one.
+        if (me.password && !verifyPassword(str(body.currentPassword, 200), me.password)) {
           return json(401, { error: 'Your current password is not right.' });
         }
         me.password = hashPassword(body.password);
@@ -1101,6 +1166,7 @@ export default async function handler(req) {
     if (body.storeLat !== undefined) s.storeLat = num(body.storeLat, s.storeLat);
     if (body.storeLng !== undefined) s.storeLng = num(body.storeLng, s.storeLng);
     if (body.mapsApiKey !== undefined) s.mapsApiKey = str(body.mapsApiKey, 120);
+    if (body.googleClientId !== undefined) s.googleClientId = str(body.googleClientId, 200);
 
     // M-Pesa — blank means "leave the saved secret alone"
     if (body.mpesaEnabled !== undefined) s.mpesaEnabled = Boolean(body.mpesaEnabled);

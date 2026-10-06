@@ -762,3 +762,14 @@ button:focus-visible, a:focus-visible, .select:focus-visible {
   .footer ul { gap: 0; }
   .footer ul a { display: inline-block; padding: .55rem 0; }
 }
+
+/* "or" divider between Google sign-in and the email form */
+.auth-or {
+  display: flex; align-items: center; gap: .8rem;
+  margin: 1.1rem 0; color: var(--muted); font-size: .76rem;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+.auth-or::before, .auth-or::after {
+  content: ""; flex: 1; height: 1px; background: var(--line);
+}
+#googleButton { display: flex; justify-content: center; }

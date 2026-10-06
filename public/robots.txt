@@ -11,4 +11,4 @@ Disallow: /api/
 Disallow: /order-alert
 Disallow: /order-alert.html
 
-Sitemap: https://tessora-beauty.netlify.app/sitemap.xml
+Sitemap: https://tessorabeauty.co.ke/sitemap.xml

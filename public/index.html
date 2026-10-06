@@ -15,13 +15,13 @@
   not render an SVG — so it points at the card in /assets.
   If the shop moves to its own domain, update the three addresses below.
 -->
-<link rel="canonical" href="https://tessora-beauty.netlify.app/">
+<link rel="canonical" href="https://tessorabeauty.co.ke/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tessora Beauty">
 <meta property="og:title" content="Tessora Beauty — Your Beauty. Your Aura.">
 <meta property="og:description" content="Makeup, skincare, body care and perfumes. Quality, authentic and affordable, delivered across Kenya.">
-<meta property="og:url" content="https://tessora-beauty.netlify.app/">
-<meta property="og:image" content="https://tessora-beauty.netlify.app/assets/share-card.jpg">
+<meta property="og:url" content="https://tessorabeauty.co.ke/">
+<meta property="og:image" content="https://tessorabeauty.co.ke/assets/share-card.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Tessora Beauty — makeup, skincare, body care, perfumes">
@@ -29,7 +29,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Tessora Beauty — Your Beauty. Your Aura.">
 <meta name="twitter:description" content="Makeup, skincare, body care and perfumes. Quality, authentic and affordable, delivered across Kenya.">
-<meta name="twitter:image" content="https://tessora-beauty.netlify.app/assets/share-card.jpg">
+<meta name="twitter:image" content="https://tessorabeauty.co.ke/assets/share-card.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Great+Vibes&display=swap" rel="stylesheet">
@@ -280,6 +280,12 @@
 
     <!-- signed out: sign in / create account -->
     <div id="accountAuth">
+      <!-- Shown only when the shop has a Google client id saved in Settings. -->
+      <div id="googleSignIn" hidden>
+        <div id="googleButton"></div>
+        <div class="auth-or"><span>or</span></div>
+      </div>
+
       <div class="auth-tabs">
         <button type="button" class="auth-tab is-active" data-auth="login">Sign in</button>
         <button type="button" class="auth-tab" data-auth="register">Create account</button>

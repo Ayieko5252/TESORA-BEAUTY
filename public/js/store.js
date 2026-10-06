@@ -373,6 +373,8 @@
   function renderAccount() {
     const on = signedIn();
     $('#accountAuth').hidden = on;
+    const gBlock = $('#googleSignIn');
+    if (gBlock && on) gBlock.hidden = true;
     $('#accountPanel').hidden = !on;
     $('#acctDot').hidden = !on;
     $('#accountTitle').textContent = on ? 'Your account' : 'Sign in';
@@ -453,6 +455,57 @@
     $('#loginForm').hidden = which !== 'login';
     $('#registerForm').hidden = which !== 'register';
     accountMessage('');
+  }
+
+  /* ------------------------------------------------- sign in with Google */
+
+  /**
+   * Google's button is only drawn when the shop has a client id saved. The
+   * browser receives a signed token from Google and we hand it straight to the
+   * server, which checks it with Google before trusting it.
+   */
+  function initGoogleSignIn() {
+    const clientId = state.settings.googleClientId;
+    if (!clientId || state.googleReady) return;
+    state.googleReady = true;
+
+    const draw = () => {
+      if (!window.google || !google.accounts || !google.accounts.id) return;
+      google.accounts.id.initialize({ client_id: clientId, callback: onGoogleCredential });
+      google.accounts.id.renderButton($('#googleButton'), {
+        theme: 'outline', size: 'large', width: 300, text: 'continue_with', shape: 'pill'
+      });
+      $('#googleSignIn').hidden = false;
+    };
+
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.defer = true;
+    s.onload = draw;
+    s.onerror = () => { state.googleReady = false; };   // fall back to email and password
+    document.head.appendChild(s);
+  }
+
+  async function onGoogleCredential(response) {
+    try {
+      const res = await api('/api/account/google', {
+        method: 'POST',
+        body: JSON.stringify({ credential: response.credential })
+      });
+      const data = await res.json();
+      if (!res.ok) return accountMessage(esc(data.error || 'Could not sign you in with Google.'));
+      saveToken(data.token);
+      state.auth.customer = data.customer;
+      accountMessage(`Welcome, ${esc(data.customer.name.split(' ')[0])} ♡`, 'ok');
+      await refreshAccount();
+      prefillCheckout();
+      if (data.needsPhone) {
+        accountMessage('Welcome ♡ We just need your phone number when you check out, for delivery.', 'ok');
+      }
+    } catch {
+      accountMessage('Network problem — please try again.');
+    }
   }
 
   async function submitRegister(event) {
@@ -948,6 +1001,7 @@
     $('#accountOpen').addEventListener('click', () => {
       closeDrawers();
       renderAccount();
+      initGoogleSignIn();
       openDrawer('#accountDrawer');
     });
     $('#accountClose').addEventListener('click', closeDrawers);
@@ -965,6 +1019,7 @@
     $('#gateSignIn').addEventListener('click', () => {
       closeDrawers();
       showAuthPane('register');
+      initGoogleSignIn();
       openDrawer('#accountDrawer');
     });
     $('#signedAs').addEventListener('click', (e) => {

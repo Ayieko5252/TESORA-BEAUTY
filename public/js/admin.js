@@ -519,6 +519,7 @@
     $('#setPerKm').value = s.deliveryPerKm ?? 15;
     $('#setBaseFee').value = s.deliveryBaseFee ?? 0;
     $('#setMapsKey').value = s.mapsApiKey || '';
+    $('#setGoogleClientId').value = s.googleClientId || '';
     $('#setStoreLat').value = s.storeLat ?? '';
     $('#setStoreLng').value = s.storeLng ?? '';
 
@@ -548,6 +549,7 @@
           freeDeliveryOver: $('#setFreeOver').value, lowStockThreshold: $('#setThreshold').value,
           deliveryPerKm: $('#setPerKm').value, deliveryBaseFee: $('#setBaseFee').value,
           mapsApiKey: $('#setMapsKey').value,
+          googleClientId: $('#setGoogleClientId').value.trim(),
           storeLat: $('#setStoreLat').value, storeLng: $('#setStoreLng').value
         }
       });
