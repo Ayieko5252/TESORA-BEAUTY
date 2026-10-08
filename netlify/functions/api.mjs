@@ -215,6 +215,131 @@ async function noteAttempt(key, ok) {
   await data().setJSON(RATE_KEY, all);
 }
 
+/* ------------------------------------------------- forgotten passwords */
+
+const RESET_MINUTES = 45;
+
+/**
+ * A reset link, issued once and good for three quarters of an hour.
+ *
+ * Only a hash of the token is stored. If someone ever got hold of the
+ * database they would hold a list of hashes, not a set of working links into
+ * every account, which is the whole reason not to keep the raw value.
+ */
+async function issueReset(db, kind, subject) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  const now = Date.now();
+  db.resets = (db.resets || [])
+    // drop anything expired, and any earlier link for the same account:
+    // asking again must make the previous email useless.
+    .filter((r) => r.exp > now && !(r.kind === kind && r.subject === subject));
+  db.resets.push({ hash, kind, subject, exp: now + RESET_MINUTES * 60 * 1000 });
+  await persist(db);
+  return { token };
+}
+
+/**
+ * Spend a reset link. Returns what it was for, or null if it is unknown,
+ * expired, or has been used already. Removing it here is what makes it
+ * single use: a link that worked twice would survive in a forwarded email.
+ */
+async function claimReset(db, kind, token) {
+  if (!token) return null;
+  const hash = crypto.createHash('sha256').update(String(token)).digest('hex');
+  const now = Date.now();
+  const all = (db.resets || []).filter((r) => r.exp > now);
+  const found = all.find((r) => r.hash === hash && r.kind === kind);
+  if (!found) { db.resets = all; return null; }
+  db.resets = all.filter((r) => r !== found);
+  await persist(db);
+  return found;
+}
+
+/* ---------------------------------------------------------- throttling */
+
+/**
+ * A plain cap on how often one address may call an endpoint.
+ *
+ * Separate from the brute-force guard above, which is about guessing a
+ * password. This is about the endpoints that cost something real each time
+ * they are called:
+ *
+ *   the M-Pesa prompt   makes a stranger's phone buzz, and burns Daraja quota
+ *   placing an order    takes stock off the shelf
+ *   a delivery quote    is a billed call to Google Distance Matrix
+ *   registering         fills the customer list with rubbish
+ *
+ * Deliberately generous: a real shopper on a shared connection, or a whole
+ * office behind one address, must never hit these. They only stop a script.
+ */
+const THROTTLE_KEY = 'endpoint-calls';
+
+/**
+ * The numbers are deliberately high, for one local reason: Safaricom and the
+ * other Kenyan mobile networks put very large numbers of customers behind a
+ * handful of addresses. Two women ordering lipstick on mobile data can easily
+ * share an address, as can a whole office or a cyber café. A limit tight
+ * enough to be satisfying would turn paying customers away, and would do it
+ * silently, which is far worse for this shop than the abuse it prevents.
+ *
+ * So the address limits are loose, and the one that actually needs to be
+ * strict is keyed on the phone number being sent the prompt rather than on
+ * the address, which no amount of shared addressing can blur.
+ */
+const LIMITS = {
+  // per phone number: stops the shop being used to pester someone
+  'stkpush-phone': { max: 5, windowMs: 10 * 60 * 1000 },
+  // per address: a backstop against a script, loose enough for a shared line
+  stkpush: { max: 20, windowMs: 10 * 60 * 1000 },
+  order: { max: 30, windowMs: 10 * 60 * 1000 },
+  quote: { max: 60, windowMs: 10 * 60 * 1000 },
+  register: { max: 10, windowMs: 60 * 60 * 1000 },
+  // asking for a reset link costs an email and reaches a real inbox
+  forgot: { max: 6, windowMs: 30 * 60 * 1000 },
+  // Submitting the form sends no email and reaches no inbox, so it only has
+  // to stop a script guessing tokens. Fumbling the form must not lock
+  // anybody out of their own account.
+  'reset-submit': { max: 30, windowMs: 30 * 60 * 1000 }
+};
+
+/**
+ * Records a call and says whether it is over the limit. Returns true when the
+ * caller should be turned away.
+ *
+ * A failure to read or write the counter returns false, letting the call
+ * through. Throttling protects against abuse; it must never be the reason a
+ * paying customer cannot place an order.
+ */
+async function overLimit(kind, req, subject) {
+  const limit = LIMITS[kind];
+  if (!limit) return false;
+  // `subject` keys the count on something other than the address, for the
+  // cases where the address is too blunt to be fair or too shared to be useful.
+  const key = `${kind}:${subject || clientIp(req)}`;
+  try {
+    const store = data();
+    const all = (await store.get(THROTTLE_KEY, { type: 'json' })) || {};
+    const now = Date.now();
+    for (const k of Object.keys(all)) {
+      const which = LIMITS[k.split(':')[0]];
+      if (!which || now - all[k].first > which.windowMs) delete all[k];
+    }
+    const rec = all[key] || { count: 0, first: now };
+    if (now - rec.first > limit.windowMs) { rec.count = 0; rec.first = now; }
+    rec.count += 1;
+    all[key] = rec;
+    await store.setJSON(THROTTLE_KEY, all);
+    return rec.count > limit.max;
+  } catch {
+    return false;
+  }
+}
+
+const tooMany = (what) => json(429, {
+  error: `Too many ${what} from this connection. Please wait a few minutes and try again.`
+});
+
 /** The password to check against: the saved one, or the environment fallback. */
 function checkAdminPassword(db, given) {
   const saved = db.settings.adminPassword;
@@ -253,21 +378,60 @@ const num = (v, fallback = 0) => (Number.isFinite(Number(v)) ? Number(v) : fallb
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const str = (v, max = 400) => String(v ?? '').trim().slice(0, max);
 const salePrice = (p) => Math.round(num(p.price) * (1 - clamp(num(p.discount), 0, 95) / 100));
-const publicProduct = (p) => ({ ...p, salePrice: salePrice(p) });
+/**
+ * A product as the shop front may see it. Named fields only, never a spread:
+ * costPrice is what the owner pays her supplier, and spreading the record
+ * published her margin to anyone who opened /api/storefront. An allowlist
+ * means a field added later is private until somebody decides otherwise.
+ */
+const PUBLIC_PRODUCT_FIELDS = [
+  'id', 'name', 'slug', 'category', 'brand', 'description',
+  'price', 'discount', 'stock', 'sku', 'images', 'featured', 'active',
+  'createdAt', 'updatedAt'
+];
+const publicProduct = (p) => {
+  const out = { salePrice: salePrice(p) };
+  for (const k of PUBLIC_PRODUCT_FIELDS) if (k in p) out[k] = p[k];
+  return out;
+};
+
+/**
+ * A product as the owner sees it: everything, cost price included. Used only
+ * behind the admin gate. Keeping the two apart is the whole point, so that
+ * narrowing what a shopper sees can never also blind the owner.
+ */
+const adminProduct = (p) => ({ ...p, salePrice: salePrice(p) });
 const newId = () => crypto.randomBytes(9).toString('base64url');
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 
-/** Settings the storefront may see. Keys, passwords and payment secrets never leave. */
+/**
+ * Settings the storefront may see.
+ *
+ * An allowlist, not a denylist. Listing what to remove means every setting
+ * added afterwards is published by accident until someone remembers to hide
+ * it, which is how passwordIsDefault — a flag telling an attacker the admin
+ * password has never been changed — ended up readable by the whole internet.
+ *
+ * Two of these are public on purpose: the Maps key and the Google client id
+ * are used by the browser and cannot work otherwise. Restrict the Maps key to
+ * this domain in the Google Cloud console; that, not secrecy, is its defence.
+ */
+const PUBLIC_SETTINGS_FIELDS = [
+  // the shop's identity, all of it already printed on the page
+  'storeName', 'tagline', 'whatsapp', 'instagram', 'tiktok', 'email',
+  'location', 'currency', 'announcement',
+  // what a customer is quoted before they order
+  'deliveryFee', 'freeDeliveryOver', 'lowStockThreshold',
+  'deliveryPerKm', 'deliveryBaseFee', 'storeLat', 'storeLng',
+  // browser keys, public by design
+  'mapsApiKey', 'googleClientId'
+];
 function publicSettings(s) {
-  const {
-    adminPassword, tokenSecret, mpesaConsumerKey, mpesaConsumerSecret, mpesaPasskey,
-    mpesaCallbackUrl, emailApiKey, reportEmail, ...rest
-  } = s;
-  return {
-    ...rest,
-    // Only advertise M-Pesa when it would actually work.
-    mpesaEnabled: Boolean(s.mpesaEnabled) && mpesaConfigured(s)
-  };
+  const out = {};
+  for (const k of PUBLIC_SETTINGS_FIELDS) if (k in s) out[k] = s[k];
+  // Only advertise M-Pesa when it would actually work.
+  out.mpesaEnabled = Boolean(s.mpesaEnabled) && mpesaConfigured(s);
+  return out;
 }
 
 /** Settings the admin panel may see, secrets shown only as "is it set?". */
@@ -453,6 +617,7 @@ export default async function handler(req) {
   /* ================================================ customer accounts ==== */
 
   if (seg[0] === 'account' && seg[1] === 'register' && method === 'POST') {
+    if (await overLimit('register', req)) return tooMany('sign-up attempts');
     const email = normalizeEmail(body.email);
     const name = str(body.name, 80);
     const phone = str(body.phone, 30);
@@ -609,6 +774,7 @@ export default async function handler(req) {
   // The checkout calls this as soon as a location is pinned, so the customer
   // sees the real delivery charge before committing to anything.
   if (seg[0] === 'delivery' && seg[1] === 'quote' && method === 'POST') {
+    if (await overLimit('quote', req)) return tooMany('delivery quotes');
     const subtotal = Math.max(0, Math.round(num(body.subtotal)));
     const dest = num(body.lat) && num(body.lng) ? { lat: num(body.lat), lng: num(body.lng) } : null;
     // Returned flat (not wrapped) because the checkout reads quote.fee,
@@ -619,6 +785,7 @@ export default async function handler(req) {
   /* ========================================================== ordering ==== */
 
   if (seg[0] === 'orders' && method === 'POST' && !seg[1]) {
+    if (await overLimit('order', req)) return tooMany('orders');
     const me = currentCustomer(req, db);
     const customer = {
       name: str(body?.customer?.name ?? me?.name, 80),
@@ -734,6 +901,8 @@ export default async function handler(req) {
 
   /* ---- M-Pesa: start the prompt on the customer's phone ---- */
   if (seg[0] === 'mpesa' && seg[1] === 'stkpush' && method === 'POST') {
+    // A payment prompt makes someone's phone buzz. Cap it hard.
+    if (await overLimit('stkpush', req)) return tooMany('payment attempts');
     const order = db.orders.find((o) => o.id === str(body.orderId, 40));
     const given = str(body.payToken ?? body.token, 60);
     if (!order || order.payToken !== given) {
@@ -748,6 +917,12 @@ export default async function handler(req) {
     if (order.payment.status === 'paid') return json(200, { alreadyPaid: true });
 
     const phone = str(body.phone, 20) || order.customer.phone;
+    // The real guard. Anyone can place an order naming someone else's number,
+    // so without this the shop is a free way to make a stranger's phone buzz
+    // over and over. Counted per number, which sharing an address cannot blur.
+    if (await overLimit('stkpush-phone', req, normalizePhone(phone))) {
+      return tooMany('payment requests to that number');
+    }
     // Safaricom calls us back, so the callback must be a public URL.
     if (!settings.mpesaCallbackUrl) settings.mpesaCallbackUrl = `${url.origin}/api/mpesa/callback`;
 
@@ -889,6 +1064,125 @@ export default async function handler(req) {
     return json(200, { token, passwordIsDefault: Boolean(settings.passwordIsDefault) });
   }
 
+  /* =================================================== forgotten passwords */
+
+  /**
+   * Ask for a reset link.
+   *
+   * Always answers the same way, whether or not the address is known. Saying
+   * "no such account" would let anyone test which of their customers shop
+   * here, which is not ours to tell.
+   */
+  if (seg[0] === 'account' && seg[1] === 'forgot' && method === 'POST') {
+    if (await overLimit('forgot', req)) return tooMany('reset requests');
+    const email = normalizeEmail(body.email);
+    const sameAnswer = json(200, {
+      ok: true,
+      message: 'If that address has an account here, a reset link is on its way to it.'
+    });
+    if (!isEmail(email)) return sameAnswer;
+
+    const customer = (db.customers || []).find((c) => c.email === email);
+    if (!customer) return sameAnswer;
+
+    const { token } = await issueReset(db, 'customer', customer.id);
+    await mailer.sendEmail(db.settings, {
+      to: customer.email,
+      subject: 'Reset your Tessora Beauty password',
+      html: mailer.resetHtml(db.settings, {
+        name: customer.name,
+        link: `${mailer.shopUrl(db.settings)}/?reset=${encodeURIComponent(token)}`,
+        minutes: RESET_MINUTES
+      }),
+      text: mailer.resetText(db.settings, {
+        link: `${mailer.shopUrl(db.settings)}/?reset=${encodeURIComponent(token)}`,
+        minutes: RESET_MINUTES
+      })
+    }).catch(() => {});
+    return sameAnswer;
+  }
+
+  /** Set the new password, using the link from the email. */
+  if (seg[0] === 'account' && seg[1] === 'reset' && method === 'POST') {
+    if (await overLimit('reset-submit', req)) return tooMany('reset attempts');
+    // The new password is checked before the link is spent. Spending it first
+    // meant a customer who typed something too short lost the link as well,
+    // and had to go back to her inbox and ask for another one.
+    const problem = passwordProblem(body.password);
+    if (problem) return json(400, { error: problem });
+
+    const claim = await claimReset(db, 'customer', str(body.token, 100));
+    if (!claim) return json(400, { error: 'That reset link has expired or has already been used. Please ask for a new one.' });
+
+    const customer = (db.customers || []).find((c) => c.id === claim.subject);
+    if (!customer) return json(400, { error: 'That reset link is no longer valid.' });
+
+    customer.password = hashPassword(String(body.password));
+    customer.updatedAt = new Date().toISOString();
+    log.record(db, {
+      type: 'customer.password_reset', actor: 'customer', target: customer.email, targetId: customer.id,
+      summary: 'Password reset using an emailed link'
+    });
+    await persist(db);
+    // The session stamp is built from the password, so every other device is
+    // signed out by this. Hand back a fresh token for the one doing the reset.
+    return json(200, { token: customerToken(db, customer), customer: publicCustomer(customer) });
+  }
+
+  /**
+   * The shop owner's own reset. The link only ever goes to the reports
+   * address already saved in settings, never to an address supplied here,
+   * so asking cannot redirect it anywhere.
+   */
+  if (seg[0] === 'admin' && seg[1] === 'forgot' && method === 'POST') {
+    if (await overLimit('forgot', req)) return tooMany('reset requests');
+    const to = mailer.reportRecipient(settings);
+    const sameAnswer = json(200, {
+      ok: true,
+      message: to
+        ? `A reset link is on its way to the shop's email address.`
+        : 'No email address is saved for this shop, so a link cannot be sent. Use the recovery script on the shop computer instead.'
+    });
+    if (!to || !mailer.isConfigured(settings)) return sameAnswer;
+
+    const { token } = await issueReset(db, 'admin', 'admin');
+    await mailer.sendEmail(settings, {
+      to,
+      subject: 'Reset your Tessora Beauty admin password',
+      html: mailer.resetHtml(settings, {
+        name: settings.storeName || 'there',
+        link: `${mailer.shopUrl(settings)}/admin?reset=${encodeURIComponent(token)}`,
+        minutes: RESET_MINUTES,
+        admin: true
+      }),
+      text: mailer.resetText(settings, {
+        link: `${mailer.shopUrl(settings)}/admin?reset=${encodeURIComponent(token)}`,
+        minutes: RESET_MINUTES
+      })
+    }).catch(() => {});
+    return sameAnswer;
+  }
+
+  /** Set a new admin password from the emailed link. */
+  if (seg[0] === 'admin' && seg[1] === 'reset' && method === 'POST') {
+    if (await overLimit('reset-submit', req)) return tooMany('reset attempts');
+    const problem = passwordProblem(body.password);
+    if (problem) return json(400, { error: problem });
+
+    const claim = await claimReset(db, 'admin', str(body.token, 100));
+    if (!claim) return json(400, { error: 'That reset link has expired or has already been used. Please ask for a new one.' });
+
+    db.settings.adminPassword = hashPassword(String(body.password));
+    db.settings.passwordIsDefault = false;
+    log.record(db, {
+      type: 'settings.updated', actor: 'owner', target: 'Admin password',
+      summary: 'Admin password reset using an emailed link'
+    });
+    await persist(db);
+    // Every signed-in admin session dies with the old password; issue one back.
+    return json(200, { token: adminToken(db) });
+  }
+
   /* ---- everything past here needs a signed-in admin ---- */
   if (!isAuthed(req, db)) return json(401, { error: 'Session expired. Please sign in again.' });
 
@@ -900,7 +1194,7 @@ export default async function handler(req) {
     return json(200, {
       settings: adminSettings(settings),
       categories: CATEGORIES,
-      products: db.products.map(publicProduct),
+      products: db.products.map(adminProduct),
       orders: db.orders,
       customers: db.customers.map(publicCustomer),
       activityUnread: log.unreadCount(db),
@@ -1068,7 +1362,7 @@ export default async function handler(req) {
         subject: `Product added, ${product.name}`,
         body: mailer.activityHtml(entry, settings)
       });
-      return json(201, { product: publicProduct(product) });
+      return json(201, { product: adminProduct(product) });
     }
 
     const product = db.products.find((p) => p.id === id);
@@ -1098,7 +1392,7 @@ export default async function handler(req) {
           body: mailer.activityHtml(entry, settings)
         });
       }
-      return json(200, { product: publicProduct(product) });
+      return json(200, { product: adminProduct(product) });
     }
 
     if (method === 'PATCH' && product) {
@@ -1127,7 +1421,7 @@ export default async function handler(req) {
         });
       }
       await persist(db);
-      return json(200, { product: publicProduct(product) });
+      return json(200, { product: adminProduct(product) });
     }
 
     if (method === 'DELETE' && product) {

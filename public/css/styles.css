@@ -1112,3 +1112,18 @@ button:focus-visible, a:focus-visible, .select:focus-visible {
 .seo-foot p { margin: .45rem 0; font-size: .82rem; color: #cfc6c0; }
 .seo-foot a { color: var(--gold-light); text-decoration: none; }
 .seo-foot a:hover { text-decoration: underline; }
+
+/* A quiet, text-only action inside a form: "Forgot your password?" and the
+   way back from it. It is a button, because it does something on this page
+   rather than going anywhere, but it should not look like one. */
+.link-quiet {
+  display: block; width: 100%; margin-top: .7rem; padding: .3rem;
+  background: none; border: 0; cursor: pointer;
+  font-family: inherit; font-size: .82rem; color: var(--muted);
+  text-align: center; text-decoration: underline; text-underline-offset: 3px;
+}
+.link-quiet:hover { color: var(--rose); }
+
+.auth-note {
+  margin: 0 0 1rem; font-size: .86rem; line-height: 1.6; color: var(--muted);
+}

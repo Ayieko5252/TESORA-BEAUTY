@@ -592,3 +592,14 @@ button:focus-visible, a:focus-visible, .prod-cell--edit:focus-visible {
   .input, .field input, .field select, .field textarea,
   .stock-edit input, .cost-edit, .status-select { font-size: 16px; }
 }
+
+/* "Forgot the password?" on the sign-in card. The admin page does not load
+   the shop stylesheet, so this is its own copy rather than a shared one. */
+.link-quiet {
+  display: block; width: 100%; margin-top: .7rem; padding: .3rem;
+  background: none; border: 0; cursor: pointer;
+  font-family: inherit; font-size: .82rem; color: var(--muted);
+  text-align: center; text-decoration: underline; text-underline-offset: 3px;
+}
+.link-quiet:hover { color: var(--rose); }
+.link-quiet:disabled { opacity: .6; cursor: default; }

@@ -110,6 +110,7 @@
     renderCartCount();
     wire();
     openLinkedProduct();
+    openResetFromLink();
     await refreshAccount();   // restores the session if they signed in before
     startLiveStock();
   }
@@ -479,11 +480,96 @@
   }
 
   function showAuthPane(which) {
+    // The two tabs only light up for the two panes they name; the forgotten
+    // password panes are reached from a link and from an email, not a tab.
     document.querySelectorAll('.auth-tab').forEach((t) =>
       t.classList.toggle('is-active', t.dataset.auth === which));
     $('#loginForm').hidden = which !== 'login';
     $('#registerForm').hidden = which !== 'register';
+    $('#forgotForm').hidden = which !== 'forgot';
+    $('#resetForm').hidden = which !== 'reset';
+    // The Google button belongs with signing in, not with resetting.
+    const google = $('#googleButton');
+    const divider = document.querySelector('.auth-or');
+    const hideSocial = which === 'forgot' || which === 'reset';
+    if (google) google.hidden = hideSocial;
+    if (divider) divider.hidden = hideSocial;
     accountMessage('');
+  }
+
+  /* ------------------------------------------------ forgotten passwords */
+
+  /** Ask for a reset link. The answer is the same whether or not we know them. */
+  async function submitForgot(event) {
+    event.preventDefault();
+    const btn = event.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/account/forgot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: $('#fgEmail').value.trim() })
+      });
+      const data = await res.json();
+      accountMessage(
+        data.message || 'If that address has an account here, a reset link is on its way to it.',
+        res.ok ? 'ok' : 'error'
+      );
+      if (res.ok) $('#forgotForm').reset();
+    } catch {
+      accountMessage('Network problem. Please try again.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send me a link';
+    }
+  }
+
+  /** Set the new password, using the token from the emailed link. */
+  async function submitReset(event) {
+    event.preventDefault();
+    const password = $('#rsPassword').value;
+    if (password !== $('#rsConfirm').value) {
+      accountMessage('Those two passwords are not the same.', 'error');
+      return;
+    }
+    const btn = event.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/account/reset', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: state.resetToken, password })
+      });
+      const data = await res.json();
+      if (!res.ok) { accountMessage(data.error || 'That did not work.', 'error'); return; }
+      // The reset hands back a session, so she is signed in straight away
+      // rather than being asked for the password she has only just chosen.
+      saveToken(data.token);
+      state.auth.customer = data.customer;
+      state.resetToken = '';
+      $('#resetForm').reset();
+      await refreshAccount();
+      toast('Password changed ♡');
+    } catch {
+      accountMessage('Network problem. Please try again.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save new password';
+    }
+  }
+
+  /**
+   * Opened from a reset email. The token is taken out of the address bar at
+   * once: a reset link left in the URL ends up in browser history, and in the
+   * referrer header of the next page she visits.
+   */
+  function openResetFromLink() {
+    const token = new URLSearchParams(location.search).get('reset');
+    if (!token) return;
+    state.resetToken = token;
+    history.replaceState(null, '', location.pathname);
+    openDrawer('#accountDrawer');
+    showAuthPane('reset');
   }
 
   /* ------------------------------------------------- sign in with Google */
@@ -1169,8 +1255,11 @@
       const f = $('#acctPasswordForm');
       f.hidden = !f.hidden;
     });
-    document.querySelectorAll('.auth-tab').forEach((tab) => {
-      tab.addEventListener('click', () => showAuthPane(tab.dataset.auth));
+    // Anything carrying data-auth switches pane, not only the two tabs: the
+    // "Back to sign in" link under the forgotten-password form is one of these
+    // and silently did nothing while this looked only for .auth-tab.
+    document.querySelectorAll('[data-auth]').forEach((el) => {
+      el.addEventListener('click', () => showAuthPane(el.dataset.auth));
     });
     $('#gateSignIn').addEventListener('click', () => {
       closeDrawers();
@@ -1191,6 +1280,9 @@
       if (e.target.id === 'paySheet' || e.target.closest('[data-pay-close]')) closePaySheet();
     });
     $('#checkoutForm').addEventListener('submit', submitOrder);
+    $('#forgotOpen').addEventListener('click', () => showAuthPane('forgot'));
+    $('#forgotForm').addEventListener('submit', submitForgot);
+    $('#resetForm').addEventListener('submit', submitReset);
     $('#coLocation').addEventListener('input', () => { state.checkout.addressTouched = true; });
     $('#burger').addEventListener('click', () => $('#nav').classList.toggle('is-open'));
     $('#nav').addEventListener('click', () => $('#nav').classList.remove('is-open'));

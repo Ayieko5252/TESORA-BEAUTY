@@ -346,6 +346,39 @@
           <input id="liPassword" type="password" required autocomplete="current-password" placeholder="Your password">
         </div>
         <button class="btn btn--gold btn--block" type="submit">Sign in</button>
+        <button type="button" class="link-quiet" id="forgotOpen">Forgot your password?</button>
+      </form>
+
+      <!-- Asking for a reset link. Deliberately says the same thing whether or
+           not the address is known, so nobody can use it to find out who
+           shops here. -->
+      <form id="forgotForm" class="auth-pane" hidden>
+        <p class="auth-note">
+          Type the email address you signed up with and we will send you a link
+          to choose a new password. The link lasts 45 minutes.
+        </p>
+        <div class="field">
+          <label for="fgEmail">Email</label>
+          <input id="fgEmail" type="email" required autocomplete="email" placeholder="you@example.com">
+        </div>
+        <button class="btn btn--gold btn--block" type="submit">Send me a link</button>
+        <button type="button" class="link-quiet" data-auth="login">Back to sign in</button>
+      </form>
+
+      <!-- Shown when the shop is opened from a reset link. -->
+      <form id="resetForm" class="auth-pane" hidden>
+        <p class="auth-note">Choose a new password for your account.</p>
+        <div class="field">
+          <label for="rsPassword">New password</label>
+          <input id="rsPassword" type="password" required autocomplete="new-password"
+                 minlength="8" placeholder="At least 8 characters">
+        </div>
+        <div class="field">
+          <label for="rsConfirm">Type it again</label>
+          <input id="rsConfirm" type="password" required autocomplete="new-password"
+                 minlength="8" placeholder="The same password">
+        </div>
+        <button class="btn btn--gold btn--block" type="submit">Save new password</button>
       </form>
 
       <form id="registerForm" class="auth-pane" hidden>

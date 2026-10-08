@@ -26,9 +26,29 @@
       <input id="password" type="password" autocomplete="current-password" required placeholder="••••••••">
     </div>
     <button class="btn btn--gold btn--block" type="submit" id="loginBtn">Sign in</button>
+    <button type="button" class="link-quiet" id="adminForgot">Forgot the password?</button>
     <p style="font-size:.78rem;color:var(--muted);margin-top:1.2rem">
       <a href="/">← Back to the shop</a>
     </p>
+  </form>
+
+  <!-- Choosing a new password, after arriving from the emailed link. -->
+  <form class="login__card" id="adminResetForm" hidden>
+    <img src="/assets/logo.svg" alt="Tessora Beauty">
+    <h1>New password</h1>
+    <p class="sub">Choose a new password for the shop admin.</p>
+    <div id="adminResetMsg"></div>
+    <div class="field">
+      <label for="arPassword">New password</label>
+      <input id="arPassword" type="password" autocomplete="new-password" required
+             minlength="8" placeholder="At least 8 characters">
+    </div>
+    <div class="field">
+      <label for="arConfirm">Type it again</label>
+      <input id="arConfirm" type="password" autocomplete="new-password" required
+             minlength="8" placeholder="The same password">
+    </div>
+    <button class="btn btn--gold btn--block" type="submit">Save new password</button>
   </form>
 </div>
 

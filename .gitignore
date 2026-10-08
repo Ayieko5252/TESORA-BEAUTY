@@ -14,3 +14,10 @@ Thumbs.db
 
 # Local data backups taken before a deploy
 backups/
+
+# Secrets. Nothing matching this has ever been committed, and this keeps it
+# that way: an API key pasted into a .env while debugging is the usual route
+# onto GitHub.
+.env
+.env.*
+!.env.example

@@ -86,6 +86,83 @@
     }
   }
 
+  /* ------------------------------------------------ forgotten password */
+
+  /**
+   * Ask for a reset link. It is only ever sent to the shop's own reports
+   * address, saved in settings, so there is nothing to type here and nothing
+   * an outsider could point somewhere else.
+   */
+  async function adminForgot() {
+    const btn = $('#adminForgot');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/admin/forgot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+      });
+      const data = await res.json();
+      $('#loginMsg').innerHTML =
+        `<div class="notice notice--${res.ok ? 'ok' : 'error'}">${esc(data.message || data.error || '')}</div>`;
+    } catch {
+      $('#loginMsg').innerHTML =
+        '<div class="notice notice--error">Network problem. Please try again.</div>';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Forgot the password?';
+    }
+  }
+
+  /** Save the new password, using the token from the emailed link. */
+  async function adminReset(event) {
+    event.preventDefault();
+    const msg = $('#adminResetMsg');
+    const password = $('#arPassword').value;
+    if (password !== $('#arConfirm').value) {
+      msg.innerHTML = '<div class="notice notice--error">Those two passwords are not the same.</div>';
+      return;
+    }
+    const btn = event.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/reset', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: state.resetToken, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.innerHTML = `<div class="notice notice--error">${esc(data.error || 'That did not work.')}</div>`;
+        return;
+      }
+      // The reset returns a session, so there is no second sign-in to do.
+      state.token = data.token;
+      sessionStorage.setItem(TOKEN_KEY, data.token);
+      state.resetToken = '';
+      event.target.reset();
+      $('#adminResetForm').hidden = true;
+      $('#loginForm').hidden = false;
+      await start();
+    } catch {
+      msg.innerHTML = '<div class="notice notice--error">Network problem. Please try again.</div>';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /**
+   * Arrived from a reset email. The token leaves the address bar immediately:
+   * left there it would sit in browser history and be handed to the next site
+   * visited as a referrer.
+   */
+  function adminResetFromLink() {
+    const token = new URLSearchParams(location.search).get('reset');
+    if (!token) return;
+    state.resetToken = token;
+    history.replaceState(null, '', location.pathname);
+    $('#loginForm').hidden = true;
+    $('#adminResetForm').hidden = false;
+  }
+
   function signOut(expired = false) {
     stopLiveUpdates();
     state.token = '';
@@ -924,6 +1001,9 @@
   /* ------------------------------------------------------------ wiring */
   function wire() {
     $('#loginForm').addEventListener('submit', signIn);
+    $('#adminForgot').addEventListener('click', adminForgot);
+    $('#adminResetForm').addEventListener('submit', adminReset);
+    adminResetFromLink();
     $('#logout').addEventListener('click', () => signOut());
     // The slide-out menu on phones: a backdrop behind it, so a tap anywhere
     // else (or Escape) closes it instead of forcing a tab choice.
