@@ -144,7 +144,23 @@ function salePrice(p) {
   return Math.round(num(p.price) * (1 - discount / 100));
 }
 
+// Named fields only, never a spread. costPrice is what the owner pays her
+// supplier, and spreading the record published her margin to anyone who
+// opened the storefront. Kept identical to the same list in the Netlify
+// function, so the two backends cannot drift apart on this.
+const PUBLIC_PRODUCT_FIELDS = [
+  'id', 'name', 'slug', 'category', 'brand', 'description',
+  'price', 'discount', 'stock', 'sku', 'images', 'featured', 'active',
+  'createdAt', 'updatedAt'
+];
 function publicProduct(p) {
+  const out = { salePrice: salePrice(p) };
+  for (const k of PUBLIC_PRODUCT_FIELDS) if (k in p) out[k] = p[k];
+  return out;
+}
+
+/** Everything, cost price included. Only ever used behind the admin gate. */
+function adminProduct(p) {
   return { ...p, salePrice: salePrice(p) };
 }
 
@@ -154,7 +170,7 @@ function publicProduct(p) {
 const PUBLIC_SETTING_KEYS = [
   'storeName', 'tagline', 'whatsapp', 'instagram', 'tiktok', 'email', 'location',
   'currency', 'announcement', 'deliveryFee', 'freeDeliveryOver', 'lowStockThreshold',
-  'deliveryPerKm', 'deliveryBaseFee', 'storeLat', 'storeLng', 'mapsApiKey'
+  'deliveryPerKm', 'deliveryBaseFee', 'storeLat', 'storeLng', 'mapsApiKey', 'googleClientId'
 ];
 function publicSettings(s) {
   const out = {};
@@ -604,7 +620,7 @@ async function api(req, res, url) {
     return sendJSON(res, 200, {
       settings: adminSettings(settings),
       categories: CATEGORIES,
-      products: products.map(publicProduct),
+      products: products.map(adminProduct),
       orders,
       customers: (db.customers || []).map(publicCustomer),
       activityUnread: log.unreadCount(db),
