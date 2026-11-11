@@ -2,46 +2,31 @@
 
 The shop is live at <https://tessorabeauty.co.ke>.
 
-Last updated 8 October 2026.
+Last updated 11 November 2026.
 
 ---
 
-## The one thing blocking everything else
+## Deployed and verified, 11 November 2026
 
-**Netlify will not accept new deploys.**
+The deploy that was blocked by Netlify credits has gone through. The fix that
+was waiting behind it is live:
 
+- **Cost price is no longer published.** It was on 46 of 91 products; it is now
+  on none of them. Checked against the live site, not just the code.
+- `passwordIsDefault`, which told anyone looking that the admin password had
+  never been changed, is gone from the public response too.
+- The password reset, the throttling and the M-Pesa payment screen are all live.
+
+A full sweep of the live shop passes 35 of 35 checks: nothing private in any
+public response, every admin endpoint refusing unauthenticated callers, a
+forged session rejected, receipts needing their own token, and the browser
+protections all present. Run it yourself any time, after any deploy:
+
+```bash
+node scripts/audit-live.mjs
 ```
-403 Account credit usage exceeded - new deploys are blocked until credits are added
-```
 
-The free plan's 300 monthly credits are spent. The usage period resets on
-**21 October 2026**.
-
-The shop itself is completely unaffected: it keeps serving from the last
-successful deploy, and every page returns normally. What is affected is
-anything that needs new code or new environment variables to go out. Two
-things are waiting on it, one of which matters.
-
-### Waiting, and it matters
-A security fix. The shop front was publishing `costPrice`, the price you pay
-your supplier, on every product that has one. **46 of your 91 products are
-exposing it right now.** It is fixed in the code and pushed to GitHub, but it
-cannot reach the live site until a deploy succeeds.
-
-Nothing else is leaking: no orders, no customers, no passwords, no payment
-keys. It is your margin, visible to anyone who knows where to look.
-
-### Waiting, and it does not matter much
-`ORDERS_EMAIL` and `REPORT_EMAIL` are set on Netlify but need a deploy to take
-effect. You do not need them: setting the same values in the admin panel
-works immediately, because admin settings live in the database rather than in
-the deploy.
-
-### What to do
-Either wait for 21 October, or add credits to the Netlify account. It is your
-call and your money; the shop trades perfectly well in the meantime.
-
----
+It is read-only. It places no orders and changes nothing.
 
 ## Done
 
@@ -111,7 +96,7 @@ Tick **Email the customer their confirmation and receipt**, save, then
 Copy the key when Resend shows it. It is shown once. If you lose it, delete
 it and make another; nothing breaks.
 
-This works today. It does not need a deploy.
+This is the last thing standing between the shop and fully automatic order emails.
 
 ### 2. Receive the money
 The payment flow is finished and switched off, because it has nowhere to pay
